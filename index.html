@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kyle Robertson</title>
+  <meta name="description" content="Kyle Robertson. Software developer and solution engineer with a background in veterinary and shelter medicine.">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0a0a'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%23ededed'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=27">
+  <script>
+    // The .js class lets CSS hide things that script.js will animate in. If that
+    // script is blocked, fails or never starts, drop the class so nothing stays hidden.
+    (function (root) {
+      root.classList.add('js');
+      var plain = function () { root.classList.remove('js'); };
+      addEventListener('error', function (e) {
+        if (e.target === window || (e.target && e.target.tagName === 'SCRIPT')) plain();
+      }, true);
+      window.__boot = setTimeout(plain, 4000);
+    })(document.documentElement);
+  </script>
+</head>
+<body>
+  <canvas id="grain" aria-hidden="true"></canvas>
+
+  <a class="skip" href="#intro">Skip to content</a>
+
+  <header class="bar" id="bar">
+    <a class="bar__name" href="#top">Kyle Robertson</a>
+    <nav aria-label="Sections">
+      <a href="#projects" data-nav="projects">Projects</a>
+      <a href="#about" data-nav="about">About</a>
+      <a href="#contact" data-nav="contact">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="home" id="top">
+      <div class="home__id">
+        <h1>Kyle Robertson</h1>
+        <p class="home__title">Software Developer &amp; Solution Engineer</p>
+        <nav class="home__nav" aria-label="Sections">
+          <a href="#projects">Projects</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </div>
+    </section>
+
+    <section class="section" id="intro" data-section="intro" aria-label="Introduction">
+      <div class="section__body">
+        <!-- Opening statement -->
+        <p class="lead" data-reveal>Self-taught software developer and solution engineer with a background in veterinary and shelter medicine. I find bottlenecks and pain points, then design, build and implement the systems that solve them.</p>
+      </div>
+    </section>
+
+    <section class="section" id="projects" data-section="projects">
+      <h2 class="section__label">Projects</h2>
+      <div class="section__body">
+
+        <article class="project" data-reveal>
+          <h3>SpecCheck</h3>
+          <div class="project__grid">
+            <div class="project__text">
+              <p>A pre-production product spec sheet verification system for a home decor manufacturer that supplies Target, Walmart, CVS, Kohl's and other national retail chains.</p>
+              <p>Reads product spec sheets locally, verifying spelling, dimensions, fonts, finishes, materials, header fields, product data and factory information before anything goes to production.</p>
+            </div>
+            <dl class="meta">
+              <div><dt>Status</dt><dd>Shipped | Licensed</dd></div>
+              <div><dt>Scale</dt><dd>Enterprise</dd></div>
+              <div><dt>Result</dt><dd>Prevents an estimated $100,000+ in product loss a year</dd></div>
+              <div><dt>Stack</dt><dd>Python, OCR, Box API, Tkinter</dd></div>
+            </dl>
+          </div>
+          <div class="shots" style="--sum:3.09">
+            <button class="shot" style="--ar:0.764" data-cursor="View">
+              <img src="images/speccheck-1.png" alt="SpecCheck flagging a misspelling in product artwork and a mismatch between the artwork and the description" width="2184" height="2860" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:1.021" data-cursor="View">
+              <img src="images/speccheck-2.png" alt="SpecCheck flagging a drawing dimension that conflicts with the listed product dimensions, and a blank required field" width="2158" height="2114" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:1.309" data-cursor="View">
+              <img src="images/speccheck-3.png" alt="SpecCheck batch results: 18 spec sheets checked, 14 clean and 4 marked for review" width="2244" height="1714" loading="lazy" decoding="async">
+            </button>
+          </div>
+        </article>
+
+        <article class="project" data-reveal>
+          <h3>Digital Health Report</h3>
+          <div class="project__grid">
+            <div class="project__text">
+              <p>Automatically audits our digital records for the health of all animals in the shelter, highlighting illnesses, upcoming test dates, overdue observations, or special handling instructions</p>
+              <p>The report is sent in slack each morning, replacing a hand compiled list that was often not done due to time and staffing constraints</p>
+            </div>
+            <dl class="meta">
+              <div><dt>Status</dt><dd>Deployed</dd></div>
+              <div><dt>User</dt><dd>Milo Foundation</dd></div>
+              <div><dt>Result</dt><dd>Ensures continuity of care, proper communication between departments, and reduces strain on the staff</dd></div>
+              <div><dt>Stack</dt><dd>Google Apps Script, Slack, ShelterLuv, Drive API</dd></div>
+            </dl>
+          </div>
+          <div class="shots" style="--sum:0.76">
+            <button class="shot" style="--ar:0.755" data-cursor="View">
+              <img src="images/health-report-1.jpg" alt="The morning health report as it arrives in Slack, listing observations due and stool issues, shown with sample data" width="974" height="1290" loading="lazy" decoding="async">
+            </button>
+          </div>
+        </article>
+
+        <article class="project" data-reveal>
+          <h3>Digital Walking Board</h3>
+          <div class="project__grid">
+            <div class="project__text">
+              <p>Staff and volunteers scan a QR code on the kennel and tap out or in. The board logs the time and suggests which dog goes next.</p>
+              <p>The scan also shows what a handler needs to know about that dog: a pending fecal sample, behavior notes, restricted areas. That information comes straight from the kennel management database.</p>
+            </div>
+            <dl class="meta">
+              <div><dt>Status</dt><dd>Deployed</dd></div>
+              <div><dt>User</dt><dd>Milo Foundation</dd></div>
+              <div><dt>Replaced</dt><dd>A dry-erase whiteboard tracking 40 to 50 dogs with 3 to 4 outings each, where outings were regularly missed</dd></div>
+              <div><dt>Stack</dt><dd>HTML, JavaScript, Python</dd></div>
+            </dl>
+          </div>
+          <div class="shots" style="--sum:1.65">
+            <button class="shot" style="--ar:1.073" data-cursor="View">
+              <img src="images/walking-board-1.png" alt="Walking board showing 36 kennels, which dogs are out, and the suggested next outing" width="2520" height="2348" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:0.579" data-cursor="View">
+              <img src="images/walking-board-2.png" alt="Phone view after scanning a kennel QR code, with buttons to take the dog on a walk, to the yard or to the park" width="712" height="1230" loading="lazy" decoding="async">
+            </button>
+          </div>
+        </article>
+
+        <article class="project" data-reveal>
+          <h3>Sidetone</h3>
+          <div class="project__grid">
+            <div class="project__text">
+              <p>Unsatisfied with the native Spotify playback control UI, I decided to take matters into my own hands.</p>
+              <p>A lightweight and easy to use Spotify controller. Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
+            </div>
+            <dl class="meta">
+              <div><dt>Status</dt><dd>Deployed</dd></div>
+              <div><dt>Platform</dt><dd>macOS</dd></div>
+              <div><dt>Stack</dt><dd>Swift, SwiftUI, AppKit, AppleScript, Spotify Web API</dd></div>
+            </dl>
+          </div>
+          <div class="shots" style="--sum:2.75">
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-1.jpg" alt="Sidetone playback panel at the left edge of the screen" width="1102" height="1200" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-2.jpg" alt="Sidetone showing six pinned playlists" width="1102" height="1200" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-3.jpg" alt="Sidetone searching the Spotify library" width="1102" height="1200" loading="lazy" decoding="async">
+            </button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <section class="section" id="about" data-section="about">
+      <h2 class="section__label">About</h2>
+      <div class="section__body">
+        <div class="story">
+          <p data-reveal>Helping people and being of service is one of the foundations my life is built on. That, together with a lifelong interest in technology, is why I love to build things that make the world a better place.</p>
+          <p data-reveal>From 2017 to 2019 I worked at VCA Emergency Animal Care Clinic, assisting in surgeries and monitoring anesthesia. In 2022 I joined the Milo Foundation, a non-profit, no-kill animal rescue and sanctuary. At their Point Richmond facility, where I still work, I built the first standalone medical department and moved it onto digital systems, including software and systems I taught myself to design. I also do freelance consulting in software development, graphic design, 3D modeling and brand solutions.</p>
+          <p data-reveal>I only recently started studying computer science and electronics engineering formally, but I've been taking technology apart my whole life. When I'm not at work you'll likely find me in my "lab": 3D modeling and printing parts, wiring PCBs, pulling apart electronics, or writing the software for whatever I'm building next.</p>
+          <p class="story__key" data-reveal>I'm looking for a software or solution engineering role where what I build helps people at a scale I can't reach on my own.</p>
+        </div>
+
+        <div class="facts">
+          <section class="group" data-reveal>
+            <h3>Experience</h3>
+            <ul>
+              <li><strong>The Milo Foundation</strong><span>Medical Technician, Solution Engineer</span><em>2022 to present</em></li>
+              <li><strong>VCA Emergency Animal Care Clinic</strong><span>Veterinary Technician</span><em>2017 to 2019</em></li>
+            </ul>
+          </section>
+          <section class="group" data-reveal>
+            <h3>Skills</h3>
+            <ul>
+              <li><strong>Python, HTML, CSS, JavaScript, Swift</strong><span>Languages</span></li>
+              <li><strong>APIs, OAuth, Git, AWS/Cloud</strong><span>Integrations</span></li>
+              <li><strong>Extensive understanding of LLMs and agentic workflows. Able to effectively utilize multi-model harnesses to greatly enhance productivity.</strong><span>AI</span></li>
+              <li><strong>VS Code, Cursor, Autodesk Fusion, AutoCAD, Adobe Suite, Blender</strong><span>Tools</span></li>
+            </ul>
+          </section>
+          <section class="group" data-reveal>
+            <h3>Education</h3>
+            <ul>
+              <li><strong>Computer Science</strong><span>Harvard (Online)</span><em>2026, in progress</em></li>
+              <li><strong>Welding</strong><span>Laney College</span><em>2024</em></li>
+              <li><strong>General Education</strong><span>Diablo Valley College</span><em>2018</em></li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--contact" id="contact" data-section="contact">
+      <h2 class="section__label">Contact</h2>
+      <div class="section__body">
+        <button class="email" id="copyEmail" data-email="email.kyle98@proton.me" data-cursor="Copy" data-reveal>email.kyle98@proton.me</button>
+        <p class="contact__note" data-reveal>Open to software engineer and solution engineer roles. Based in Hercules, California.</p>
+        <p class="contact__note contact__note--low" data-reveal>Click the address to copy it, or <a href="mailto:email.kyle98@proton.me">open your mail app</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 Kyle Robertson</span>
+    <button class="footer__paw" id="footerPaw" aria-label="Paw print">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-20 14 26)"/>
+        <ellipse cx="26" cy="14" rx="6.5" ry="9" transform="rotate(-8 26 14)"/>
+        <ellipse cx="40" cy="14" rx="6.5" ry="9" transform="rotate(8 40 14)"/>
+        <ellipse cx="52" cy="26" rx="6" ry="8" transform="rotate(20 52 26)"/>
+        <path d="M32 30C22 30 14 40 14 48c0 7 6 10 11 8 4-1.5 10-1.5 14 0 5 2 11-1 11-8 0-8-8-18-18-18z"/>
+      </svg>
+    </button>
+    <a href="#top">Top</a>
+  </footer>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot" data-cursor="Close">
+    <img alt="">
+    <p></p>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="cursor cursor--ring" id="cursorRing" aria-hidden="true"></div>
+  <div class="cursor cursor--dot" id="cursorDot" aria-hidden="true"></div>
+  <div class="cursor cursor--label" id="cursorLabel" aria-hidden="true"></div>
+
+  <script src="script.js?v=27"></script>
+</body>
+</html>

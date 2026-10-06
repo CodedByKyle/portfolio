@@ -1,0 +1,4 @@
+# Only needed for local preview, not for the live site
+serve.py
+README.md
+.claude
