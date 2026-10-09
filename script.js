@@ -27,7 +27,7 @@
     attribute vec2 aOff;
     attribute vec4 aSeed;   // threshold, phase, scatter angle, scatter distance
     attribute float aPaw;
-    attribute vec2 aPawPos; // where this speck sits in the intro paw print
+    attribute vec4 aPawPos; // where this speck sits in the intro paw print; z is how near the outline, w the way out
     uniform vec2 uRes;
     uniform float uDpr, uTime, uGather, uSpread, uPawGain, uScroll, uPan, uDim, uPaw;
     varying float vAlpha;
@@ -104,13 +104,30 @@
       float g = clamp(uGather * 1.6 - aSeed.y * 0.6, 0.0, 1.0);
       g = 1.0 - pow(1.0 - g, 3.0);
       float ang = aSeed.z + (1.0 - g) * 1.6;
-      vec2 from = aPawPos + vec2(cos(ang), sin(ang)) * aSeed.w * (1.0 - g);
+      vec2 from = aPawPos.xy + vec2(cos(ang), sin(ang)) * aSeed.w * (1.0 - g);
       // Part two: the paw lets go and each speck swings out to its own place.
       float s = clamp(uSpread * 1.5 - fract(aSeed.y * 13.7) * 0.5, 0.0, 1.0);
       s = s * s * (3.0 - 2.0 * s);
-      vec2 way = aHome - aPawPos;
+      vec2 way = aHome - aPawPos.xy;
       vec2 swing = vec2(-way.y, way.x) * sin(3.14159 * s) * mix(0.08, 0.26, fract(aSeed.x * 37.0));
+      // While the paw is held, its outline breathes. Neighbouring specks ride
+      // the same slow field, so the edge swells and drifts as one soft shape
+      // instead of each speck twitching alone, and the motion thins out toward
+      // the middle. It fades in as each speck lands and out as it lets go.
+      float soft = aPawPos.z * pow(g, 6.0) * (1.0 - s);
       vec2 p = mix(from, aHome, s) + swing + aOff;
+      // Once the paw has let go every speck's share is zero, so skip the noise.
+      if (uSpread < 1.0 && soft > 0.0) {
+        float unit = min(uRes.x, uRes.y);
+        vec2 q = aPawPos.xy / unit * 7.0;
+        float t = uTime * 0.3;
+        // In and out along the outline, a different amount at each stretch of
+        // it, so the paw never grows or shrinks as a whole.
+        float breath = noise2(q * 0.5 + vec2(-t * 1.3, t * 1.3 + 23.0)) - 0.5;
+        vec2 flow = vec2(noise2(q + vec2(t, 3.0)), noise2(q + vec2(11.0, -t))) - 0.5;
+        p += (vec2(cos(aPawPos.w), sin(aPawPos.w)) * breath + flow * 0.6) * soft * unit * 0.005;
+        a *= 1.0 - 0.14 * soft * noise2(q * 1.4 + vec2(t * 1.2 + 41.0, 7.0));
+      }
 
       vAlpha = a * g * mix(uPawGain, 1.0, s) * uDim;
       vec2 clip = p / uRes * 2.0 - 1.0;
@@ -152,7 +169,7 @@
       const buf = gl.createBuffer(), loc = gl.getAttribLocation(prog, name);
       return { buf, loc, size };
     };
-    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 2) };
+    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 4) };
     const upload = (a, data, usage) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, a.buf);
       gl.bufferData(gl.ARRAY_BUFFER, data, usage);
@@ -196,13 +213,35 @@
         const a = px[p * 4 + 3];
         if (a > 8) { inside.push(p); weight += a / 255; }
       }
-      const pos = new Float32Array(N * 2);
+      // How far each pixel of the paw is from its outline, in two sweeps over
+      // the drawing: down-right, then back up-left, each passing on the nearest
+      // distance found so far.
+      const dist = new Float32Array(w * h), D = Math.SQRT2;
+      for (const p of inside) dist[p] = 1e9;
+      for (let y = 1; y < h; y++) for (let x = 1; x < w - 1; x++) {
+        const p = y * w + x;
+        if (dist[p]) dist[p] = Math.min(dist[p], dist[p - 1] + 1, dist[p - w] + 1, dist[p - w - 1] + D, dist[p - w + 1] + D);
+      }
+      for (let y = h - 2; y >= 0; y--) for (let x = w - 2; x > 0; x--) {
+        const p = y * w + x;
+        if (dist[p]) dist[p] = Math.min(dist[p], dist[p + 1] + 1, dist[p + w] + 1, dist[p + w + 1] + D, dist[p + w - 1] + D);
+      }
+      // x, y, how close the spot is to the outline (1 on the edge, easing to 0
+      // well inside, a little uneven from speck to speck so no band shows), and
+      // the direction that leads straight out of the paw.
+      const pos = new Float32Array(N * 4);
+      const reach = Math.max(4, k * 10);
+      const at = (x, y) => dist[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))];
       for (let i = 0; i < N; i++) {
-        if (!inside.length) { pos[i * 2] = home[i * 2]; pos[i * 2 + 1] = home[i * 2 + 1]; continue; }
+        if (!inside.length) { pos[i * 4] = home[i * 2]; pos[i * 4 + 1] = home[i * 2 + 1]; continue; }
         let p;
         do { p = inside[Math.random() * inside.length | 0]; } while (Math.random() * 255 > px[p * 4 + 3]);
-        pos[i * 2] = (p % w + Math.random()) / s;
-        pos[i * 2 + 1] = ((p / w | 0) + Math.random()) / s;
+        const x = p % w, y = p / w | 0;
+        const near = Math.max(0, 1 - dist[p] / reach);
+        pos[i * 4] = (x + Math.random()) / s;
+        pos[i * 4 + 1] = (y + Math.random()) / s;
+        pos[i * 4 + 2] = near * near * (0.65 + 0.35 * Math.random());
+        pos[i * 4 + 3] = Math.atan2(at(x, y - 2) - at(x, y + 2), at(x - 2, y) - at(x + 2, y));
       }
       // Only the specks lit in the landscape show up, roughly LIT of them. Turn
       // them down if that many would pack the paw into a solid white shape.
