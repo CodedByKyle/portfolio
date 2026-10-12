@@ -517,6 +517,10 @@
       boxVid.style.aspectRatio = `${img.getAttribute('width')} / ${img.getAttribute('height')}`;
       // Focus the player so its controls work from the keyboard.
       boxVid.focus({ preventScroll: true });
+      // Start by itself, silently. If the browser refuses, or motion is turned
+      // down, the poster and the player's own controls are still there.
+      boxVid.muted = true;
+      if (!calm.matches) boxVid.play().catch(() => {});
     } else {
       boxImg.src = img.currentSrc || img.src;
       boxImg.alt = img.alt;
@@ -530,6 +534,7 @@
     stopVideo();
     box.classList.remove('is-open');
     root.classList.remove('is-locked');
+    syncClips();
     if (opener) opener.focus({ preventScroll: true });
   }
   $$('.shot').forEach(btn => btn.addEventListener('click', () => {
@@ -537,6 +542,7 @@
     group = $$('.shot', btn.closest('.shots'));
     box.classList.add('is-open');
     root.classList.add('is-locked');
+    syncClips();
     showShot(group.indexOf(btn));
   }));
   // A click on the player is for its controls, not for closing.
@@ -550,6 +556,54 @@
       showShot(at + (e.key === 'ArrowRight' ? 1 : -1));
     }
   });
+
+  /* ---------- Screenshots: clips play by themselves in the row ---------- */
+  // A shot with a clip loops it, muted, over its still image while it is on
+  // screen. The still stays underneath, so it is what shows until the clip is
+  // really playing, and whenever it cannot or should not play.
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  const clips = $$('.shot[data-video]').map(btn => ({ btn, video: null, seen: false }));
+  function playClip(clip) {
+    if (!clip.video) {
+      // Made on first use, so the clip is only fetched once it is wanted.
+      const v = clip.video = document.createElement('video');
+      v.muted = v.defaultMuted = v.loop = v.playsInline = true;
+      v.setAttribute('playsinline', '');
+      v.disablePictureInPicture = true;
+      v.preload = 'none';
+      v.tabIndex = -1;
+      v.setAttribute('aria-hidden', 'true');   // the still's alt text already describes it
+      v.addEventListener('playing', () => clip.btn.classList.add('is-playing'));
+      v.addEventListener('error', () => clip.btn.classList.remove('is-playing'));
+      v.src = clip.btn.dataset.video;
+      clip.btn.append(v);
+    }
+    if (!clip.video.paused) return;
+    const started = clip.video.play();
+    // Refused (autoplay blocked, low power mode): leave the still showing.
+    if (started) started.catch(() => { if (clip.video.paused) clip.btn.classList.remove('is-playing'); });
+  }
+  function syncClips() {
+    const hold = calm.matches || document.hidden || box.classList.contains('is-open');
+    clips.forEach(clip => {
+      if (!hold && clip.seen) return playClip(clip);
+      if (clip.video) clip.video.pause();
+      // With motion turned down, go back to the still, not a frozen frame.
+      if (calm.matches) clip.btn.classList.remove('is-playing');
+    });
+  }
+  if (clips.length) {
+    const clipIO = new IntersectionObserver(entries => {
+      entries.forEach(e => { clips.find(clip => clip.btn === e.target).seen = e.isIntersecting && e.intersectionRatio >= 0.25; });
+      syncClips();
+    }, { threshold: 0.25 });
+    clips.forEach(clip => clipIO.observe(clip.btn));
+    document.addEventListener('visibilitychange', syncClips);
+    calm.addEventListener('change', () => {
+      if (calm.matches) boxVid.pause();
+      syncClips();
+    });
+  }
 
   /* ---------- Copy email ---------- */
   const copyBtn = $('#copyEmail');
