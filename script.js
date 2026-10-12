@@ -492,20 +492,42 @@
   }
 
   /* ---------- Screenshots: click to view full size ---------- */
-  const box = $('#lightbox'), boxImg = $('img', box), boxCap = $('p', box);
+  const box = $('#lightbox'), boxImg = $('img', box), boxVid = $('video', box), boxCap = $('p', box);
   let group = [], at = 0, opener = null;
+  // Stop the clip and drop its source, so nothing keeps playing or loading unseen.
+  function stopVideo() {
+    if (!boxVid.hasAttribute('src')) return;
+    boxVid.pause();
+    boxVid.removeAttribute('src');
+    boxVid.load();
+  }
   function showShot(i) {
     at = (i + group.length) % group.length;
-    const img = $('img', group[at]);
-    boxImg.src = img.currentSrc || img.src;
-    boxImg.alt = img.alt;
+    const img = $('img', group[at]), video = group[at].dataset.video;
     // Screenshots are captured at 2x, so half the pixel width is true size.
-    boxImg.style.width = img.naturalWidth ? img.naturalWidth / 2 + 'px' : '';
+    const width = img.naturalWidth ? img.naturalWidth / 2 + 'px' : '';
+    stopVideo();
+    boxImg.hidden = !!video;
+    boxVid.hidden = !video;
+    if (video) {
+      boxVid.poster = img.currentSrc || img.src;
+      boxVid.src = video;
+      boxVid.setAttribute('aria-label', img.alt);
+      boxVid.style.width = width;
+      boxVid.style.aspectRatio = `${img.getAttribute('width')} / ${img.getAttribute('height')}`;
+      // Focus the player so its controls work from the keyboard.
+      boxVid.focus({ preventScroll: true });
+    } else {
+      boxImg.src = img.currentSrc || img.src;
+      boxImg.alt = img.alt;
+      boxImg.style.width = width;
+    }
     boxCap.textContent = img.alt + (group.length > 1 ? `  (${at + 1} of ${group.length})` : '');
     box.scrollTop = 0;
   }
   function closeShot() {
     if (!box.classList.contains('is-open')) return;
+    stopVideo();
     box.classList.remove('is-open');
     root.classList.remove('is-locked');
     if (opener) opener.focus({ preventScroll: true });
@@ -513,16 +535,20 @@
   $$('.shot').forEach(btn => btn.addEventListener('click', () => {
     opener = btn;
     group = $$('.shot', btn.closest('.shots'));
-    showShot(group.indexOf(btn));
     box.classList.add('is-open');
     root.classList.add('is-locked');
+    showShot(group.indexOf(btn));
   }));
-  box.addEventListener('click', closeShot);
+  // A click on the player is for its controls, not for closing.
+  box.addEventListener('click', e => { if (e.target !== boxVid) closeShot(); });
   addEventListener('keydown', e => {
     if (!box.classList.contains('is-open')) return;
     if (e.key === 'Escape') closeShot();
-    if (e.key === 'ArrowRight') showShot(at + 1);
-    if (e.key === 'ArrowLeft') showShot(at - 1);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      if (e.composedPath().includes(boxVid) || document.activeElement === boxVid) return;
+      e.preventDefault();
+      showShot(at + (e.key === 'ArrowRight' ? 1 : -1));
+    }
   });
 
   /* ---------- Copy email ---------- */
