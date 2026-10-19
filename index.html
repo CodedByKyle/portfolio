@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kyle Robertson</title>
-  <meta name="description" content="Kyle Robertson. Software developer and solution engineer with a background in veterinary and shelter medicine.">
+  <title>Kyle Robertson · Solution Engineer &amp; Developer</title>
+  <meta name="description" content="Kyle Robertson. Solution Engineer and Developer focused on workflow automation and systems integration, with a background in veterinary and shelter medical operations.">
   <!-- Link preview card (iMessage, Slack, LinkedIn). The image address must be
        absolute, so update these if the site moves to its own domain. -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kylerobertson.vercel.app/">
-  <meta property="og:title" content="Kyle Robertson">
-  <meta property="og:description" content="Software developer and solution engineer with a background in veterinary and shelter medicine.">
+  <meta property="og:title" content="Kyle Robertson · Solution Engineer &amp; Developer">
+  <meta property="og:description" content="Solution Engineer and Developer focused on workflow automation and systems integration, with a background in veterinary and shelter medical operations.">
   <meta property="og:image" content="https://kylerobertson.vercel.app/images/preview.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=29">
   <script>
     // The .js class lets CSS hide things that script.js will animate in. If that
     // script is blocked, fails or never starts, drop the class so nothing stays hidden.
@@ -53,19 +53,43 @@
     <section class="home" id="top">
       <div class="home__id">
         <h1>Kyle Robertson</h1>
-        <p class="home__title">Software Developer &amp; Solution Engineer</p>
-        <nav class="home__nav" aria-label="Sections">
-          <a href="#projects">Projects</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
+        <div class="home__title">
+          <p>Solution Engineer &amp; Developer</p>
+          <p class="home__focus">Focused on workflow automation and systems integration.</p>
+        </div>
+        <p class="home__pitch">I work alongside teams to understand how work gets done, identify bottlenecks, then build and integrate practical solutions.</p>
+        <nav class="home__nav home__actions" aria-label="Start here">
+          <a href="#projects">View case studies <span aria-hidden="true">↓</span></a>
+          <a href="#contact">Discuss a workflow <span aria-hidden="true">→</span></a>
         </nav>
       </div>
     </section>
 
-    <section class="section" id="intro" data-section="intro" aria-label="Introduction">
+    <section class="section" id="intro" data-section="intro" aria-labelledby="introLabel">
+      <h2 class="section__label" id="introLabel">How I work</h2>
       <div class="section__body">
-        <!-- Opening statement -->
-        <p class="lead" data-reveal>Developer and Solution Engineer with a background in veterinary and shelter medicine. I find bottlenecks and pain points, then design, build and ship the systems that solve them.</p>
+        <ol class="steps" data-reveal>
+          <li>
+            <span class="steps__n" aria-hidden="true">01</span>
+            <strong>Observe and identify</strong>
+            <p>Work alongside the team to understand daily workflows, identify bottlenecks, and clarify what a useful solution needs to do.</p>
+          </li>
+          <li>
+            <span class="steps__n" aria-hidden="true">02</span>
+            <strong>Propose and build</strong>
+            <p>Propose an approach that fits the team, weigh existing tools against custom development, and build a working solution around the agreed priorities.</p>
+          </li>
+          <li>
+            <span class="steps__n" aria-hidden="true">03</span>
+            <strong>Implement and verify</strong>
+            <p>Integrate the solution into the workflow and test it with the people who will use it, including real cases and failure scenarios.</p>
+          </li>
+          <li>
+            <span class="steps__n" aria-hidden="true">04</span>
+            <strong>Support and maintain</strong>
+            <p>Document the solution, help the team use it, resolve issues, and refine it as their needs change.</p>
+          </li>
+        </ol>
       </div>
     </section>
 
@@ -73,19 +97,13 @@
       <h2 class="section__label">Projects</h2>
       <div class="section__body">
 
-        <article class="project" data-reveal>
+        <article class="project" id="speccheck" data-reveal>
           <h3>SpecCheck</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>A pre-production product spec sheet verification system for a home decor manufacturer that supplies Target, Walmart, CVS, Kohl's and other national retail chains.</p>
-              <p>Validates product spec sheets locally, verifying spelling, dimensions, fonts, finishes, materials, header fields, product data and factory information before anything goes to production.</p>
+              <p>A pre-production spec sheet checker for a home decor manufacturer that supplies Target, Walmart, CVS, Kohl's and other national retail chains.</p>
+              <p>It reads spec sheets locally, checks spelling, dimensions, fonts, finishes, materials, header fields, product data and factory information, and sorts every file into a review report before anything goes to manufacturing.</p>
             </div>
-            <dl class="meta">
-              <div><dt>Status</dt><dd>Shipped | Licensed</dd></div>
-              <div><dt>Scale</dt><dd>Enterprise</dd></div>
-              <div><dt>Result</dt><dd>Prevents an estimated $100,000+ in product loss a year</dd></div>
-              <div><dt>Stack</dt><dd>Python, OCR, Box API, Tkinter</dd></div>
-            </dl>
           </div>
           <div class="shots" style="--sum:5.53">
             <button class="shot" style="--ar:1.133" data-cursor="View">
@@ -104,42 +122,108 @@
               <img src="images/speccheck-5.png" alt="SpecCheck final report: 9 files, 2 on hold, 2 for review, 3 clean and 2 unreadable, with the findings listed for each file" width="1200" height="1246" loading="lazy" decoding="async">
             </button>
           </div>
+
+          <details class="case">
+            <summary>
+              <span class="case__toggle" aria-hidden="true"></span>
+              <span class="case__title">Case study</span>
+              <span class="case__hint">Problem, workflow, stack</span>
+            </summary>
+            <div class="case__body">
+              <section class="case__part">
+                <h4>Problem</h4>
+                <div>
+                  <p>Before a product is manufactured, its spec sheet has to be right: spelling, dimensions, fonts, finishes, materials, header fields, product data and factory information. A wrong value that gets past review can carry into production.</p>
+                  <p>SpecCheck adds an automated first pass to that review and leaves the decision with a person.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Workflow</h4>
+                <div>
+                  <ol class="flow" aria-label="SpecCheck workflow">
+                    <li><span class="flow__kind">Input</span><span class="flow__nodes"><span class="node">Box link <small>Box API</small></span><span class="node">Local folder</span></span></li>
+                    <li><span class="flow__kind">Read</span><span class="flow__nodes"><span class="node">Each file opened on the local machine, with text recognition (OCR) for image-based sheets</span></span></li>
+                    <li><span class="flow__kind">Check</span><span class="flow__nodes"><span class="node">Spelling, dimensions, fonts, finishes, materials, header fields, product data, factory information</span></span></li>
+                    <li><span class="flow__kind">Sort</span><span class="flow__nodes"><span class="node node--mark">Hold</span><span class="node node--mark">Review</span><span class="node node--mark">Clean</span><span class="node node--mark node--dashed">Unreadable</span></span></li>
+                    <li><span class="flow__kind">Report</span><span class="flow__nodes"><span class="node">HTML review report, saved to a chosen folder and searchable by product, file, verdict or severity</span></span></li>
+                    <li><span class="flow__kind">People</span><span class="flow__nodes"><span class="node node--person">A person reviews the findings and signs off</span></span></li>
+                  </ol>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Stack</h4>
+                <div>
+                  <p>Python, OCR, Box API, Tkinter, HTML reports</p>
+                </div>
+              </section>
+
+              <button class="case__close" type="button">Close case study <span aria-hidden="true">↑</span></button>
+            </div>
+          </details>
         </article>
 
-        <article class="project" data-reveal>
+        <article class="project" id="health-report" data-reveal>
           <h3>Digital Health Report</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>Automatically audits our digital records for the health of all animals in the shelter, highlighting illnesses, upcoming test dates, overdue observations, or special handling instructions</p>
-              <p>The report is sent in slack each morning, replacing a hand compiled list that was often not done due to time and staffing constraints</p>
+              <p>A morning Slack report of the shelter animals that need medical attention: illnesses, observations and stool samples due, and handling notes.</p>
+              <p>It replaced a hand-compiled list that was sometimes missed when staffing or time ran short.</p>
             </div>
-            <dl class="meta">
-              <div><dt>Status</dt><dd>Deployed</dd></div>
-              <div><dt>User</dt><dd>Milo Foundation</dd></div>
-              <div><dt>Result</dt><dd>Ensures continuity of care, proper communication between departments, and reduces strain on the staff</dd></div>
-              <div><dt>Stack</dt><dd>Google Apps Script, Slack, ShelterLuv, Drive API</dd></div>
-            </dl>
           </div>
           <div class="shots" style="--sum:0.76">
             <button class="shot" style="--ar:0.755" data-cursor="View">
               <img src="images/health-report-1.jpg" alt="The morning health report as it arrives in Slack, listing observations due and stool issues, shown with sample data" width="974" height="1290" loading="lazy" decoding="async">
             </button>
           </div>
+
+          <details class="case">
+            <summary>
+              <span class="case__toggle" aria-hidden="true"></span>
+              <span class="case__title">Case study</span>
+              <span class="case__hint">Problem, workflow, stack</span>
+            </summary>
+            <div class="case__body">
+              <section class="case__part">
+                <h4>Problem</h4>
+                <div>
+                  <p>The medical team kept a hand-written list of animals that needed attention. It was compiled daily, printed and posted around the building, when time allowed. With limited staff and time, it was sometimes missed.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Workflow</h4>
+                <div>
+                  <ol class="flow" aria-label="Digital Health Report workflow">
+                    <li><span class="flow__kind">Data</span><span class="flow__nodes"><span class="node">Internal medical database</span><span class="node">Shelterluv scheduled report emails</span></span></li>
+                    <li><span class="flow__kind">Processing</span><span class="flow__nodes"><span class="node">Google Apps Script reads both sources and combines them into one report</span></span></li>
+                    <li><span class="flow__kind">Delivery</span><span class="flow__nodes"><span class="node">Formatted message posted to Slack each morning</span></span></li>
+                    <li><span class="flow__kind">People</span><span class="flow__nodes"><span class="node node--person">Relevant staff read it in Slack</span></span></li>
+                  </ol>
+                  <p class="case__source">The report lists illnesses and medical notes, observations due, stool samples due, and handling notes. The screenshot is a test run with sample data, not real animals.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Stack</h4>
+                <div>
+                  <p>Google Apps Script, Slack, Shelterluv report emails, Drive API</p>
+                </div>
+              </section>
+
+              <button class="case__close" type="button">Close case study <span aria-hidden="true">↑</span></button>
+            </div>
+          </details>
         </article>
 
-        <article class="project" data-reveal>
+        <article class="project" id="walking-board" data-reveal>
           <h3>Digital Walking Board</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>Staff and volunteers scan a QR code on the kennel and tap out or in. The board logs the time and suggests which dog goes next.</p>
-              <p>The scan also shows what a handler needs to know about that dog: a pending fecal sample, behavior notes, restricted areas. That information comes straight from the kennel management database.</p>
+              <p>Staff and volunteers scan the QR code on a kennel and tap a dog out or back in. The board logs the time and suggests which dog goes next.</p>
+              <p>It replaced a dry-erase whiteboard, where outings and notes could be erased or missed. Each scan brings outing records and handling information into one view: a needed fecal sample, behavior notes, restricted areas.</p>
             </div>
-            <dl class="meta">
-              <div><dt>Status</dt><dd>Deployed</dd></div>
-              <div><dt>User</dt><dd>Milo Foundation</dd></div>
-              <div><dt>Replaced</dt><dd>A dry-erase whiteboard tracking 40 to 50 dogs with 3 to 4 outings each, where outings were regularly missed</dd></div>
-              <div><dt>Stack</dt><dd>HTML, JavaScript, Python</dd></div>
-            </dl>
           </div>
           <div class="shots" style="--sum:1.65">
             <button class="shot" style="--ar:1.073" data-cursor="View">
@@ -149,20 +233,55 @@
               <img src="images/walking-board-2.png" alt="Phone view after scanning a kennel QR code, with buttons to take the dog on a walk, to the yard or to the park" width="712" height="1230" loading="lazy" decoding="async">
             </button>
           </div>
+
+          <details class="case">
+            <summary>
+              <span class="case__toggle" aria-hidden="true"></span>
+              <span class="case__title">Case study</span>
+              <span class="case__hint">Problem, workflow, stack</span>
+            </summary>
+            <div class="case__body">
+              <section class="case__part">
+                <h4>Problem</h4>
+                <div>
+                  <p>Outings for 40 to 50 dogs, each going out 3 to 4 times a day, were tracked on a dry-erase whiteboard. Entries could be erased or missed, and handling notes lived somewhere else.</p>
+                  <p>The board moves that record to the kennel door: scan, tap, and the time is logged.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Workflow</h4>
+                <div>
+                  <ol class="flow" aria-label="Digital Walking Board workflow">
+                    <li><span class="flow__kind">Scan</span><span class="flow__nodes"><span class="node">QR code on the kennel, opened on a phone</span></span></li>
+                    <li><span class="flow__kind">Record</span><span class="flow__nodes"><span class="node node--mark">Walk</span><span class="node node--mark">Yard</span><span class="node node--mark">Park</span><span class="node node--mark">Back in kennel</span></span></li>
+                    <li><span class="flow__kind">Log</span><span class="flow__nodes"><span class="node">Time and initials added to the dog's outing history</span></span></li>
+                    <li><span class="flow__kind">Board</span><span class="flow__nodes"><span class="node">Every kennel's status and time, and a suggested next outing</span></span></li>
+                    <li><span class="flow__kind">People</span><span class="flow__nodes"><span class="node node--person">Staff or a volunteer picks the next dog, following staff handling restrictions</span></span></li>
+                  </ol>
+                  <p class="case__source">The screenshots are a demo with 36 sample kennels. In the demo, initials identify the person but are not a secure login, and outings are recorded only in the demo. They do not show how the deployed board stores or shares its data.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Stack</h4>
+                <div>
+                  <p>HTML, JavaScript</p>
+                </div>
+              </section>
+
+              <button class="case__close" type="button">Close case study <span aria-hidden="true">↑</span></button>
+            </div>
+          </details>
         </article>
 
-        <article class="project" data-reveal>
+        <article class="project" id="sidetone" data-reveal>
           <h3>Sidetone</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>Unsatisfied with the native Spotify playback control UI, I decided to take matters into my own hands.</p>
-              <p>A lightweight and easy to use Spotify controller. Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
+              <p>A personal automation experiment: a lightweight Spotify controller for macOS.</p>
+              <p>Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
             </div>
-            <dl class="meta">
-              <div><dt>Status</dt><dd>Deployed</dd></div>
-              <div><dt>Platform</dt><dd>macOS</dd></div>
-              <div><dt>Stack</dt><dd>Swift, SwiftUI, AppKit, AppleScript, Spotify Web API</dd></div>
-            </dl>
           </div>
           <div class="shots" style="--sum:2.75">
             <button class="shot" style="--ar:0.918" data-cursor="View">
@@ -175,6 +294,45 @@
               <img src="images/sidetone-3.jpg" alt="Sidetone searching the Spotify library" width="1102" height="1200" loading="lazy" decoding="async">
             </button>
           </div>
+
+          <details class="case">
+            <summary>
+              <span class="case__toggle" aria-hidden="true"></span>
+              <span class="case__title">Case study</span>
+              <span class="case__hint">Problem, workflow, stack</span>
+            </summary>
+            <div class="case__body">
+              <section class="case__part">
+                <h4>Problem</h4>
+                <div>
+                  <p>Skipping a song or starting a playlist meant switching to the Spotify app, finding it, and switching back. Each switch is small, but it pulls attention away from the work in front of you.</p>
+                  <p>Sidetone is a personal experiment in keeping those controls one gesture away.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Workflow</h4>
+                <div>
+                  <ol class="flow" aria-label="Sidetone workflow">
+                    <li><span class="flow__kind">Open</span><span class="flow__nodes"><span class="node">Cursor to the screen edge</span><span class="node">Hotkey</span></span></li>
+                    <li><span class="flow__kind">Panel</span><span class="flow__nodes"><span class="node">Now playing, progress, playback controls and volume</span></span></li>
+                    <li><span class="flow__kind">Choose</span><span class="flow__nodes"><span class="node">Pinned favorites</span><span class="node">Search: songs, artists, albums, playlists</span></span></li>
+                    <li><span class="flow__kind">Return</span><span class="flow__nodes"><span class="node node--person">Back to the app I was working in</span></span></li>
+                  </ol>
+                  <p class="case__source">This is the path through the app as a user sees it. It does not describe how work is split between AppleScript and the Spotify Web API.</p>
+                </div>
+              </section>
+
+              <section class="case__part">
+                <h4>Stack</h4>
+                <div>
+                  <p>Swift, SwiftUI, AppKit, AppleScript, Spotify Web API</p>
+                </div>
+              </section>
+
+              <button class="case__close" type="button">Close case study <span aria-hidden="true">↑</span></button>
+            </div>
+          </details>
         </article>
 
       </div>
@@ -184,35 +342,35 @@
       <h2 class="section__label">About</h2>
       <div class="section__body">
         <div class="story">
-          <p data-reveal>Helping people and being of service is one of the foundations my life is built on. That, together with a lifelong interest in technology, is why I'm compelled to build things that make the world a better place.</p>
-          <p data-reveal>From 2017 to 2019 I worked at VCA Emergency Animal Care Clinic, assisting in surgeries and monitoring anesthesia. In 2022 I joined the Milo Foundation, a non-profit, no-kill animal rescue and sanctuary. At their Point Richmond facility, where I work today, I pioneered a standalone medical department and moved it onto digital systems, including software and systems I designed and shipped myself. In addition, I do freelance work in software development, graphic design, 3D modeling, and brand solutions.</p>
-          <p data-reveal>I only recently started studying computer science and electronics engineering formally, but I've been taking technology apart my entire life. When I'm not at work, in class, or hiking with my dog (and best friend) Wayne, you'll likely find me in my "lab": 3D modeling and printing parts, wiring PCBs, pulling apart electronics, or writing the software for whatever I'm building next.</p>
-          <p class="story__key" data-reveal>I'm looking for a software or solution engineering role where what I build helps people at a scale I can't reach on my own.</p>
+          <p data-reveal>Most of my working life has been in animal medicine. From 2017 to 2019 I worked at VCA Emergency Animal Care Clinic, assisting in surgeries and monitoring anesthesia. In 2022 I joined the Milo Foundation, a non-profit, no-kill animal rescue in Point Richmond.</p>
+          <p data-reveal>At Milo I set up a standalone medical department and moved its records off paper and whiteboards into a digital database. The systems on this page grew out of that work.</p>
+          <p data-reveal>When I'm not at work or in class, I'm usually hiking with my dog (and best friend) Wayne, or in my "lab" 3D printing parts, wiring PCBs and writing the software for whatever I'm building next.</p>
         </div>
 
         <div class="facts">
           <section class="group" data-reveal>
             <h3>Experience</h3>
             <ul>
-              <li><strong>The Milo Foundation</strong><span>Medical Technician, Solution Engineer</span><em>2022 to present</em></li>
+              <li><strong>The Milo Foundation</strong><span>Medical Technician · Medical operations &amp; internal systems</span><em>2022 to present</em></li>
               <li><strong>VCA Emergency Animal Care Clinic</strong><span>Veterinary Technician</span><em>2017 to 2019</em></li>
             </ul>
           </section>
           <section class="group" data-reveal>
             <h3>Skills</h3>
             <ul>
-              <li><strong>Python, HTML, CSS, JavaScript, Swift</strong><span>Languages</span></li>
-              <li><strong>APIs, OAuth, Git, AWS/Cloud</strong><span>Integrations</span></li>
-              <li><strong>Extensive understanding of LLMs and agentic workflows. Strong utilization of machine learning to enhance my knowledge and produce high quality software solutions.</strong><span>AI</span></li>
-              <li><strong>VS Code, Cursor, Autodesk Fusion, AutoCAD, Adobe Suite, Blender</strong><span>Tools</span></li>
+              <li><strong>Python, JavaScript, Swift, HTML/CSS</strong><span>Languages used across these projects</span></li>
+              <li><strong>APIs, OAuth, Box API, Slack, Google Apps Script</strong><span>Integrations</span></li>
+              <li><strong>Git, VS Code, Cursor</strong><span>Development tools</span></li>
+              <li><strong>AI and machine learning assisted production</strong><span>LLM-assisted development and implementation</span></li>
             </ul>
           </section>
           <section class="group" data-reveal>
-            <h3>Education</h3>
+            <h3>Learning</h3>
             <ul>
-              <li><strong>Computer Science</strong><span>Harvard (Online)</span><em>2026, in progress</em></li>
-              <li><strong>Welding</strong><span>Laney College</span><em>2024</em></li>
-              <li><strong>General Education</strong><span>Diablo Valley College</span><em>2018</em></li>
+              <li><strong>CS50: Introduction to Computer Science</strong><span>Harvard OpenCourseWare</span><em>In progress</em></li>
+              <li><strong>AI Engineering</strong><span>IBM, online course</span><em>In progress</em></li>
+              <li><strong>LLM technologies and applied AI</strong><span>Independent study of emerging models, tools and engineering practices</span><em>In progress</em></li>
+              <li><strong>Embedded systems and electronics coursework</strong><span>University of Colorado Boulder, online</span><em>In progress</em></li>
             </ul>
           </section>
         </div>
@@ -223,8 +381,11 @@
       <h2 class="section__label">Contact</h2>
       <div class="section__body">
         <button class="email" id="copyEmail" data-email="email.kyle98@proton.me" data-cursor="Copy" data-reveal>email.kyle98@proton.me</button>
-        <p class="contact__note" data-reveal>Open to software engineer and solution engineer roles. Based in Hercules, California.</p>
+        <p class="contact__note" data-reveal>Open to implementation and technical consulting roles, and to scoped workflow projects. Based in Hercules, California.</p>
         <p class="contact__note contact__note--low" data-reveal>Click the address to copy it, or <a href="mailto:email.kyle98@proton.me">open your mail app</a>.</p>
+        <ul class="contact__links" data-reveal>
+          <li><a href="https://github.com/CodedByKyle" target="_blank" rel="noopener">GitHub <span aria-hidden="true">↗</span></a></li>
+        </ul>
       </div>
     </section>
   </main>
@@ -254,6 +415,6 @@
   <div class="cursor cursor--dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor cursor--label" id="cursorLabel" aria-hidden="true"></div>
 
-  <script src="script.js?v=27"></script>
+  <script src="script.js?v=29"></script>
 </body>
 </html>

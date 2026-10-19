@@ -3,8 +3,9 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const root = document.documentElement;
   clearTimeout(window.__boot);   // we are running; cancel the plain-page fallback
-  // The name normally waits for the grain's first frame. Never let it wait long.
-  setTimeout(() => root.classList.add('is-live'), 5000);
+  // The name and proposition normally wait for the grain's first frame. Never
+  // let them wait long: they carry what the page is about.
+  setTimeout(() => root.classList.add('is-live'), 1500);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Shared pointer state: the grain and the cursor both read it.
@@ -88,8 +89,8 @@
         }
       }
 
-      // Keep the corner behind the name clear on the home screen.
-      vec2 q = vec2(uv.x / mix(2.0, 0.9, smoothstep(0.7, 1.3, aspect)), (1.0 - uv.y) / 0.5);
+      // Keep the corner behind the name and proposition clear on the home screen.
+      vec2 q = vec2(uv.x / mix(2.0, 0.9, smoothstep(0.7, 1.3, aspect)), (1.0 - uv.y) / 0.62);
       float corner = smoothstep(0.6, 1.1, length(q));
       d *= mix(corner, 1.0, clamp(uScroll * 2.0, 0.0, 1.0));
       d *= 1.0 - smoothstep(0.78, 1.0, uv.y) * 0.85;
@@ -426,12 +427,15 @@
     if (scrollY >= document.documentElement.scrollHeight - vh - 4) current = sections[sections.length - 1].dataset.section;
     navLinks.forEach(a => a.classList.toggle('is-current', a.dataset.nav === current));
 
-    // The project nearest the middle of the screen is the one in focus.
+    // The project nearest the middle of the screen is the one in focus. A project
+    // with its case study open stays in focus for as long as it spans the middle,
+    // so the text being read is never the dimmed one.
     let best = null, bestDist = Infinity;
     projects.forEach(p => {
       const r = p.getBoundingClientRect();
       const mid = r.top + Math.min(r.height, vh * 0.7) / 2;
-      const dist = Math.abs(mid - vh * 0.48);
+      const reading = p.querySelector('details[open]') && r.top < vh * 0.48 && r.bottom > vh * 0.48;
+      const dist = reading ? -1 : Math.abs(mid - vh * 0.48);
       if (dist < bestDist) { bestDist = dist; best = p; }
     });
     projects.forEach(p => p.classList.toggle('is-focus', p === best));
@@ -450,6 +454,17 @@
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
   $$('[data-reveal]').forEach(el => io.observe(el));
+
+  /* ---------- Case studies ---------- */
+  // Opening or closing a case study changes the page height, so recheck focus.
+  $$('details').forEach(d => d.addEventListener('toggle', queueScroll));
+  // The button at the end of a long case study closes it and returns to its summary.
+  $$('.case__close').forEach(btn => btn.addEventListener('click', () => {
+    const details = btn.closest('details'), summary = $('summary', details);
+    details.open = false;
+    summary.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+    summary.focus({ preventScroll: true });
+  }));
 
   /* ---------- Toast ---------- */
   const toastEl = $('#toast');
@@ -471,10 +486,10 @@
       if (!placed) { rx = e.clientX; ry = e.clientY; placed = true; }
       root.classList.add('cursor-on');
       dot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-      const target = e.target.closest('a, button, [data-cursor]');
+      const target = e.target.closest('a, button, summary, [data-cursor]');
       // The ring fills over links and buttons, but not over screenshots, where
       // an inverted disc would hide what you are looking at.
-      root.classList.toggle('cursor-hover', !!target && target.matches('a, button') && !target.classList.contains('shot'));
+      root.classList.toggle('cursor-hover', !!target && target.matches('a, button, summary') && !target.classList.contains('shot'));
       const text = target && target.dataset.cursor;
       root.classList.toggle('cursor-labelled', !!text);
       if (text) label.textContent = text;
