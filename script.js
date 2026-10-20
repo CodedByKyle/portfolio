@@ -3,10 +3,28 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const root = document.documentElement;
   clearTimeout(window.__boot);   // we are running; cancel the plain-page fallback
-  // The name and proposition normally wait for the grain's first frame. Never
-  // let them wait long: they carry what the page is about.
-  setTimeout(() => root.classList.add('is-live'), 1500);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The name and proposition come in as the paw starts to spread; frame() calls
+  // reveal() off the grain's own clock. They carry what the page is about, so a
+  // watchdog shows them anyway if the grain stalls, and anything that skips the
+  // intro (no WebGL, a failed build, reduced motion) shows them at once.
+  // Until the first frame, only visible time counts: a background tab runs no
+  // frames, and the intro should still play when it comes to the front.
+  const FIRST_FRAME_LIMIT = 2500;   // ms of visible time for the grain to start
+  let shown = false, watchdog = 0;
+  const watch = ms => { clearTimeout(watchdog); watchdog = setTimeout(reveal, ms); };
+  const waitForFirstFrame = () => document.hidden ? clearTimeout(watchdog) : watch(FIRST_FRAME_LIMIT);
+  function reveal() {
+    if (shown) return;
+    shown = true;
+    clearTimeout(watchdog);
+    document.removeEventListener('visibilitychange', waitForFirstFrame);
+    root.classList.add('is-live');
+  }
+  document.addEventListener('visibilitychange', waitForFirstFrame);
+  waitForFirstFrame();
+  if (reduced) reveal();
 
   // Shared pointer state: the grain and the cursor both read it.
   const ptr = { x: 0, y: 0, lx: 0, ly: 0, vx: 0, vy: 0, t: -1e9, seen: false };
@@ -163,12 +181,33 @@
       rich = clamp(mix(vec3(dot(rich, vec3(0.3, 0.5, 0.2))), rich, 1.3), 0.0, 1.0);
       vec3 col = mix(vec3(0.93), rich, tint);
       col = mix(col, neon(aBurst.z + age * 0.08), hit);
-      float glow = max(tint, hit) * step(0.02, a);
-      // How much of the glow is the idle crest rather than a click.
-      float amb = tint / (tint + hit + 0.0001);
+      // The intro paw carries its own neon: one gradient across the print, cyan
+      // at the top left through violet to pink at the heel, set by where each
+      // speck lands. Only parts of the print take it: a fixed, smooth mask picks
+      // a few broad patches, and even there some specks stay white, so the paw
+      // reads as white with patches of colour rather than coloured noise. The
+      // outline is richer than the middle and a share of the coloured outline
+      // specks glow. Each speck hands over to the dune colours as it lets go.
+      float intro = (1.0 - s) * (1.0 - uPaw);
+      float pawTint = 0.0, pawGlow = 0.0;
+      if (intro > 0.0) {
+        vec2 c = (aPawPos.xy - uRes * vec2(0.5, 0.45)) / (0.5 * min(uRes.x, uRes.y));
+        float ph = clamp(0.33 + 0.75 * (c.x * 0.45 + c.y * 0.8) + 0.04 * sin(uTime * 0.7 + c.x * 3.0), 0.0, 0.66);
+        vec3 pawCol = neon(ph);
+        pawCol = clamp(mix(vec3(dot(pawCol, vec3(0.3, 0.5, 0.2))), pawCol, 1.35), 0.0, 1.0);
+        float spot = smoothstep(0.45, 0.62, 0.5 + 0.25 * sin(10.0 * c.x + 5.0 * c.y + 4.0) + 0.25 * sin(-6.0 * c.x + 9.0 * c.y + 4.5));
+        float accent = spot * step(fract(aSeed.z * 7.13), 0.8);
+        pawTint = intro * accent * mix(0.8, 1.0, aPawPos.z) * mix(0.6, 1.0, g);
+        col = mix(col, pawCol, pawTint);
+        pawGlow = intro * accent * g * smoothstep(0.3, 0.7, aPawPos.z) * step(fract(aSeed.x * 53.0), 0.4);
+      }
+      float glow = max(max(tint, hit), pawGlow * 0.8) * step(0.02, a);
+      // How much of the glow is the idle crest or the paw rather than a click.
+      float amb = (tint + pawGlow) / (tint + pawGlow + hit + 0.0001);
 
       // Scrolling dims the land; the crest neon dims less, so it still reads.
-      vAlpha = a * g * mix(uPawGain, 1.0, s) * mix(uDim, sqrt(uDim), tint * amb);
+      // Neon reads darker than white, so the coloured paw specks are lifted a little.
+      vAlpha = a * g * mix(uPawGain, 1.0, s) * mix(uDim, sqrt(uDim), tint * amb) * (1.0 + 0.3 * pawTint);
       vColor = col;
       vec2 clip = p / uRes * 2.0 - 1.0;
       gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
@@ -498,16 +537,25 @@
     }
 
     const GATHER = 1.3, HOLD = 0.6, SPREAD = 2.0;
+    // Once the clock runs, the text is due at GATHER + HOLD. The watchdog only
+    // covers frames stopping before then, so it can never beat the paw.
+    const INTRO_LIMIT = (GATHER + HOLD) * 1000 + 1500;
     let t0 = 0, last = 0, scrollS = 0, pan = 0, paw = 0, pawTarget = 0;
     const clamp = (v, m) => Math.max(-m, Math.min(m, v));
     function frame(now) {
       if (!N) {
-        try { build(); } catch (err) { console.warn(err); canvas.remove(); root.classList.add('is-live'); return; }
+        try { build(); } catch (err) { console.warn(err); canvas.remove(); reveal(); return; }
         if (!N) return requestAnimationFrame(frame);
       }
-      // First real frame: start the clock and let the name follow the grain.
-      if (!t0) { t0 = last = now; root.classList.add('is-live'); }
+      // First real frame: start the clock. Hidden time no longer pauses the
+      // watchdog, since the clock below is wall time too.
+      if (!t0) {
+        t0 = last = now;
+        if (!shown) { document.removeEventListener('visibilitychange', waitForFirstFrame); watch(INTRO_LIMIT); }
+      }
       const t = (now - t0) / 1000;
+      // The paw has gathered and held: bring the name in as it spreads.
+      if (!shown && t >= GATHER + HOLD) reveal();
       // dt in 60fps frames, so motion is the same on 60Hz and 120Hz screens.
       const dt = Math.min((now - last) / 16.667, 3) || 1;
       last = now;
@@ -568,7 +616,7 @@
   }
   let grain = null;
   try { grain = createGrain(); } catch (err) { console.warn(err); }
-  if (!grain) root.classList.add('is-live');   // no grain, so nothing to wait for
+  if (!grain) reveal();   // no grain, so nothing to wait for
 
   // Mouse click anywhere: blow the specks out of a circle around the pointer.
   addEventListener('pointerdown', e => {

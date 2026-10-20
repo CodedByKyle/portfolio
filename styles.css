@@ -47,10 +47,12 @@ main, .footer { position: relative; z-index: 1; }
   padding: var(--pad);
 }
 .home h1 {
-  font-weight: 300;
+  font-family: "Space Grotesk", sans-serif;
+  text-shadow: -5px 0 12px rgba(64, 235, 255, .38), 0 0 22px rgba(163, 102, 255, .34), 5px 0 14px rgba(255, 87, 199, .30), 0 0 38px rgba(163, 102, 255, .18);
+  font-weight: 400;
   font-size: clamp(29px, 4.6vw, 73px);
   line-height: 1;
-  letter-spacing: -.026em;
+  letter-spacing: -.035em;
   margin-left: -.04em;
 }
 .home__title {
@@ -162,9 +164,9 @@ main, .footer { position: relative; z-index: 1; }
 .home__actions a:focus-visible .home__ring::before { opacity: 1; }
 .home__actions a:focus-visible .home__ring::after { opacity: 1; animation: home-spark 3.2s linear infinite; }
 
-/* Name, proposition and links come in with the grain's first frame (.is-live),
-   while the paw gathers, so what Kyle does is readable within about a second
-   instead of waiting for the intro to finish. */
+/* Name, proposition and links come in once the intro paw has gathered and held,
+   as it starts to spread (script.js adds .is-live off the grain's clock, about
+   1.9s after its first frame, or at once when there is no intro to wait for). */
 .js .home__id > * { opacity: 0; }
 .js.is-live .home__id > * { animation: arrive 1.4s var(--ease) both; }
 .js.is-live .home__id > :nth-child(1) { animation-delay: .15s; }
