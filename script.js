@@ -29,9 +29,11 @@
     attribute vec4 aSeed;   // threshold, phase, scatter angle, scatter distance
     attribute float aPaw;
     attribute vec4 aPawPos; // where this speck sits in the intro paw print; z is how near the outline, w the way out
+    attribute vec3 aBurst;  // the last click that threw this speck: when (on the uTime clock), how hard, and its hue
     uniform vec2 uRes;
     uniform float uDpr, uTime, uGather, uSpread, uPawGain, uScroll, uPan, uDim, uPaw;
-    varying float vAlpha;
+    varying float vAlpha, vGlow, vCore;
+    varying vec3 vColor;
 
     float hash(float n) { return fract(sin(n) * 43758.5453123); }
     float noise(float x) {
@@ -52,6 +54,15 @@
       return noise2(vec2(x, m)) * 0.62 + noise2(vec2(x * 2.13 + 17.0, m + 5.0)) * 0.27 + noise2(vec2(x * 4.7 + 41.0, m + 11.0)) * 0.11;
     }
 
+    // Neon palette, cycling cyan, violet, pink as h goes from 0 to 1.
+    vec3 neon(float h) {
+      h = fract(h) * 3.0;
+      vec3 cyan = vec3(0.25, 0.92, 1.0), violet = vec3(0.64, 0.4, 1.0), pink = vec3(1.0, 0.34, 0.78);
+      if (h < 1.0) return mix(cyan, violet, smoothstep(0.0, 1.0, h));
+      if (h < 2.0) return mix(violet, pink, smoothstep(1.0, 2.0, h));
+      return mix(pink, cyan, smoothstep(2.0, 3.0, h));
+    }
+
     const int K = 3;
 
     void main() {
@@ -61,6 +72,9 @@
 
       // Loose dust in the sky.
       float d = 0.012 * smoothstep(0.0, 0.35, uv.y);
+      // How near this speck sits to the crest of the ridge in front, and the
+      // neon hue there. Like d, only the nearest ridge over the speck counts.
+      float crest = 0.0, hue = 0.0;
 
       // Ridges, far to near. Each has a hard bright crest and a soft slope
       // that falls into shadow before the next crest starts.
@@ -78,7 +92,8 @@
                    + 0.06 * sin(uScroll * 0.8) * sin(kk * 2.4 + 1.0);
         float amp = mix(0.06, 0.15, fk) * (1.0 + 0.4 * sin(uScroll * 0.9) * cos(kk * 2.0));
         float freq = mix(2.1, 1.0, fk);
-        float ridge = base + amp * (profile(x * freq + kk * 13.7 + drift, morph) - 0.5) * 2.0;
+        float along = x * freq + kk * 13.7 + drift;
+        float ridge = base + amp * (profile(along, morph) - 0.5) * 2.0;
         float below = uv.y - ridge;
         if (below > 0.0) {
           float light = 0.1 + 0.9 * smoothstep(0.25, 0.75, noise(x * 0.8 + kk * 5.1 - drift * 1.4 + uScroll * 0.5));
@@ -86,14 +101,18 @@
           // Faint ripples running down the slope, like wind marks in sand.
           float ripple = 0.8 + 0.2 * sin(below * 210.0 + noise(x * 2.3 + float(k) * 3.0) * 6.0 - uTime * 0.12);
           d = mix(0.55, 1.0, fk) * light * slope * mix(1.0, ripple, smoothstep(0.0, 0.03, below));
+          // Bright stretches of crest carry neon, in patches that drift along the ridge.
+          float pulse = smoothstep(0.3, 0.75, noise(along * 1.1 - uTime * 0.18 + kk * 4.0));
+          crest = exp(-below / 0.01) * smoothstep(0.3, 0.8, light) * mix(0.2, 1.0, pulse);
+          hue = along * 0.22 + kk * 0.31 - uTime * 0.05;
         }
       }
 
       // Keep the corner behind the name and proposition clear on the home screen.
       vec2 q = vec2(uv.x / mix(2.0, 0.9, smoothstep(0.7, 1.3, aspect)), (1.0 - uv.y) / 0.62);
       float corner = smoothstep(0.6, 1.1, length(q));
-      d *= mix(corner, 1.0, clamp(uScroll * 2.0, 0.0, 1.0));
-      d *= 1.0 - smoothstep(0.78, 1.0, uv.y) * 0.85;
+      float keep = mix(corner, 1.0, clamp(uScroll * 2.0, 0.0, 1.0)) * (1.0 - smoothstep(0.78, 1.0, uv.y) * 0.85);
+      d *= keep;
 
       d = mix(d, aPaw, uPaw);
 
@@ -130,16 +149,40 @@
         a *= 1.0 - 0.14 * soft * noise2(q * 1.4 + vec2(t * 1.2 + 41.0, 7.0));
       }
 
+      // Colour. It only comes in once the paw has let go, and stays out of the
+      // easter egg. A click tints the specks it threw, lighting a share of the
+      // dark ones too so it shows in the sky, then fades back to the idle look.
+      float fade = (1.0 - uPaw) * s;
+      float tint = crest * keep * fade;
+      float age = uTime - aBurst.x;
+      float hit = aBurst.y * (1.0 - smoothstep(0.0, 2.6, age)) * fade;
+      a = max(a, hit * (1.0 - smoothstep(0.08, 0.2, aSeed.x)) * mix(0.4, 1.0, keep));
+      vec3 col = mix(vec3(0.93), neon(hue), tint);
+      col = mix(col, neon(aBurst.z + age * 0.08), hit);
+      float glow = max(tint, hit) * step(0.02, a);
+
       vAlpha = a * g * mix(uPawGain, 1.0, s) * uDim;
+      vColor = col;
       vec2 clip = p / uRes * 2.0 - 1.0;
       gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
-      gl_PointSize = max(1.0, uDpr * mix(0.7, 1.3, fract(aSeed.x * 91.7)));
+      // A glowing speck draws a larger point: its own speck in the middle, a halo round it.
+      float size = max(1.0, uDpr * mix(0.7, 1.3, fract(aSeed.x * 91.7)));
+      float grow = uDpr * 3.0 * glow;
+      gl_PointSize = size + grow;
+      vCore = size / (size + grow);
+      vGlow = glow;
     }`;
 
   const FRAG = `
     precision mediump float;
-    varying float vAlpha;
-    void main() { gl_FragColor = vec4(vec3(0.93), vAlpha); }`;
+    varying float vAlpha, vGlow, vCore;
+    varying vec3 vColor;
+    void main() {
+      if (vGlow <= 0.0) { gl_FragColor = vec4(vColor, vAlpha); return; }
+      float r = length(gl_PointCoord - 0.5) * 2.0;
+      if (r < vCore) gl_FragColor = vec4(mix(vColor, vec3(1.0), 0.25 * vGlow), vAlpha);
+      else gl_FragColor = vec4(vColor, vAlpha * vGlow * 0.55 * pow(max(1.0 - r, 0.0), 1.5));
+    }`;
 
   function createGrain() {
     const canvas = $('#grain');
@@ -170,7 +213,7 @@
       const buf = gl.createBuffer(), loc = gl.getAttribLocation(prog, name);
       return { buf, loc, size };
     };
-    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 4) };
+    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 4), burst: attr('aBurst', 3) };
     const upload = (a, data, usage) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, a.buf);
       gl.bufferData(gl.ARRAY_BUFFER, data, usage);
@@ -179,7 +222,8 @@
     };
 
     let W = 0, H = 0, dpr = 1, N = 0;
-    let home, off, vel, live, liveCount = 0;
+    let home, off, vel, live, liveCount = 0, hits;
+    let clock = 12;   // the shader's uTime as of the last frame
 
     // One paw drawing feeds two things: a per-speck brightness mask (the easter
     // egg lights specks where they already are) and a per-speck landing spot
@@ -279,6 +323,9 @@
       upload(A.pawPos, paw.pos, gl.STATIC_DRAW);
       gl.uniform1f(U.uPawGain, paw.gain);
       upload(A.off, off, gl.DYNAMIC_DRAW);
+      hits = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) hits[i * 3] = -1e4;
+      upload(A.burst, hits, gl.DYNAMIC_DRAW);
       gl.uniform2f(U.uRes, W, H);
       gl.uniform1f(U.uDpr, dpr);
     }
@@ -316,23 +363,56 @@
       return true;
     }
 
-    // A click throws every speck inside a circle straight out from the pointer.
+    // A click throws every speck inside a blob straight out from the pointer.
     // Each one gets just enough speed to coast to the edge, so they pile up
     // there as a ring and leave the middle empty; the spring then refills it.
+    // Every click draws a fresh blob: a few smooth lobes plus a slight stretch,
+    // scaled to about the area of a circle of radius R.
+    const SEG = 256;
+    const shape = new Float32Array(SEG + 2);
     function burst(x, y) {
       if (reduced || !N) return;
-      const R = Math.max(120, Math.min(220, Math.min(W, H) * 0.24)), R2 = R * R;
+      const R = Math.max(120, Math.min(220, Math.min(W, H) * 0.24));
       const COAST = 9;   // px travelled per px/frame of launch speed, given the damping
-      let woke = 0;
+      const lobes = 2 + (Math.random() * 3 | 0);
+      const waves = [[1, 0.08], [2, 0.16], [lobes, 0.2], [lobes + 2, 0.06]]
+        .map(([n, amp]) => [n, amp * (0.4 + Math.random() * 0.6), Math.random() * Math.PI * 2]);
+      let sq = 0;
+      for (let k = 0; k < SEG; k++) {
+        const t = k / SEG * Math.PI * 2 - Math.PI;
+        let r = 1;
+        for (const [n, amp, ph] of waves) r += amp * Math.cos(n * t + ph);
+        shape[k] = r; sq += r * r;
+      }
+      const scale = R / Math.sqrt(sq / SEG);
+      let reach = 0;
+      for (let k = 0; k < SEG; k++) reach = Math.max(reach, shape[k] = Math.min(shape[k] * scale, R * 1.5));
+      shape[SEG] = shape[0]; shape[SEG + 1] = shape[1];
+      const reach2 = reach * reach, perTurn = SEG / (Math.PI * 2);
+      const hue = Math.random(), turn = Math.random() * Math.PI * 2;
+      let woke = 0, lo = N, hi = -1;
       for (let i = 0, j = 0; i < N; i++, j += 2) {
         const dx = home[j] + off[j] - x, dy = home[j + 1] + off[j + 1] - y, d2 = dx * dx + dy * dy;
-        if (d2 >= R2) continue;
+        if (d2 >= reach2) continue;
+        const ang = Math.atan2(dy, dx), u = (ang + Math.PI) * perTurn, k = u | 0;
+        const edge = shape[k] + (shape[k + 1] - shape[k]) * (u - k);
         const d = Math.sqrt(d2) + 0.001;
-        const v = (R - d) / COAST * (0.85 + Math.random() * 0.3);
+        if (d >= edge) continue;
+        const v = (edge - d) / COAST * (0.85 + Math.random() * 0.3);
         vel[j] += dx / d * v; vel[j + 1] += dy / d * v;
         if (!live[i]) { live[i] = 1; woke++; }
+        const b = i * 3, f = d / edge;
+        hits[b] = clock;
+        hits[b + 1] = 1 - 0.3 * f;
+        hits[b + 2] = hue + 0.3 * Math.cos(ang - turn) + 0.15 * f;
+        if (i < lo) lo = i;
+        hi = i;
       }
       liveCount += woke;
+      if (hi >= lo) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, A.burst.buf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, lo * 12, hits.subarray(lo * 3, hi * 3 + 3));
+      }
     }
 
     const GATHER = 1.3, HOLD = 0.6, SPREAD = 2.0;
@@ -363,7 +443,8 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, A.off.buf);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, off);
       }
-      gl.uniform1f(U.uTime, reduced ? 12 : t + 12);
+      clock = reduced ? 12 : t + 12;
+      gl.uniform1f(U.uTime, clock);
       // Intro timeline, in seconds: gather into the paw, hold, spread out.
       gl.uniform1f(U.uGather, reduced ? 1 : Math.min(t / GATHER, 1));
       gl.uniform1f(U.uSpread, reduced ? 1 : Math.min(Math.max((t - GATHER - HOLD) / SPREAD, 0), 1));
