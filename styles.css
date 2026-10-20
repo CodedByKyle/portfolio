@@ -164,9 +164,10 @@ main, .footer { position: relative; z-index: 1; }
 .home__actions a:focus-visible .home__ring::before { opacity: 1; }
 .home__actions a:focus-visible .home__ring::after { opacity: 1; animation: home-spark 3.2s linear infinite; }
 
-/* Name, proposition and links come in once the intro paw has gathered and held,
-   as it starts to spread (script.js adds .is-live off the grain's clock, about
-   1.9s after its first frame, or at once when there is no intro to wait for). */
+/* Name, proposition and links come in once the intro orb has poured into the
+   paw and the paw has held, as it starts to spread (script.js adds .is-live off
+   the grain's clock, about 3.4s after its first frame, or at once when there is
+   no intro to wait for). */
 .js .home__id > * { opacity: 0; }
 .js.is-live .home__id > * { animation: arrive 1.4s var(--ease) both; }
 .js.is-live .home__id > :nth-child(1) { animation-delay: .15s; }
@@ -396,7 +397,17 @@ summary:hover .case__hint { color: var(--mid); }
   margin-top: clamp(40px, 7vh, 72px);
 }
 .steps li { padding-top: 16px; border-top: 1px solid var(--line); }
-.steps__n { display: block; margin-bottom: 14px; font-size: 12px; color: var(--low); }
+/* Step numbers pick up the dune/name colors: the gradient fills the digits and
+   drop-shadow carries the glow, since text-shadow paints over clipped text. */
+.steps__n {
+  display: block; width: fit-content; margin-bottom: 14px;
+  font-size: clamp(28px, 2.6vw, 36px); line-height: 1; letter-spacing: .02em;
+  color: #a366ff;
+  background: linear-gradient(100deg, #40ebff 0%, #a366ff 55%, #ff57c7 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(64, 235, 255, .35)) drop-shadow(0 0 14px rgba(163, 102, 255, .3));
+}
 .steps strong { display: block; font-weight: 400; font-size: 15px; }
 .steps p { margin-top: 8px; max-width: 34ch; font-size: 13.5px; color: var(--mid); }
 .ai-note {

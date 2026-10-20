@@ -40,16 +40,22 @@
      so the form is drawn by which specks are on. Density runs on the GPU;
      the cursor pushing specks around is a small spring simulation here.
      ===================================================================== */
+  // The intro paw's size inside the shell, as a share of the print drawn below.
+  const INNER = 0.8;
+  // The inner orb's radius as a share of the screen's short side; the shell
+  // round it is 0.31, so the orb has room inside it and grows into the paw.
+  const ORB_R = 0.13;
   const VERT = `
     precision highp float;
     attribute vec2 aHome;
     attribute vec2 aOff;
-    attribute vec4 aSeed;   // threshold, phase, scatter angle, scatter distance
+    attribute vec4 aSeed;   // threshold, phase, angle, distance (the angle and distance also place the speck on the intro orb)
     attribute float aPaw;
     attribute vec4 aPawPos; // where this speck sits in the intro paw print; z is how near the outline, w the way out
+    attribute vec3 aPawRelief; // its height off the print's plane (front pads above, back below) and the x, y of its surface normal
     attribute vec3 aBurst;  // the last click that threw this speck: when (on the uTime clock), how hard, and its hue
     uniform vec2 uRes;
-    uniform float uDpr, uTime, uGather, uSpread, uPawGain, uScroll, uPan, uDim, uPaw;
+    uniform float uDpr, uTime, uOrbIn, uGather, uSpread, uPawGain, uScroll, uPan, uDim, uPaw;
     varying float vAlpha, vGlow, vCore, vAmb;
     varying vec3 vColor;
 
@@ -82,6 +88,8 @@
     }
 
     const int K = 3;
+    const float INNER = ${INNER.toFixed(2)};
+    const float ORB_R = ${ORB_R.toFixed(2)};
 
     void main() {
       vec2 uv = aHome / uRes;
@@ -138,33 +146,167 @@
       a *= 0.82 + 0.18 * sin(uTime * (0.5 + aSeed.y * 1.6) + aSeed.y * 50.0);
       a *= mix(0.6, 1.0, fract(aSeed.y * 7.31));
 
-      // Intro, part one: every speck flies in and lands inside a paw print.
-      float g = clamp(uGather * 1.6 - aSeed.y * 0.6, 0.0, 1.0);
-      g = 1.0 - pow(1.0 - g, 3.0);
-      float ang = aSeed.z + (1.0 - g) * 1.6;
-      vec2 from = aPawPos.xy + vec2(cos(ang), sin(ang)) * aSeed.w * (1.0 - g);
-      // Part two: the paw lets go and each speck swings out to its own place.
+      // Intro, part one: two spheres of dots, one inside the other, both there
+      // from the first frame. The inner orb breathes, turning on a tilted axis
+      // with luminous contours flowing over it; round it a larger, sparser shell
+      // turns the other way and breathes more gently, its near face held back to
+      // a veil so the orb shows through. The inner orb's specks then pour into a
+      // paw print in its place while the shell keeps its size, until both let go
+      // together. Once they have, this block is skipped.
+      float lag = aSeed.y, orbA = a, orbGlow = 0.0, shell = 0.0, fill = 0.0;
+      vec2 orbP = aPawPos.xy;
+      vec3 orbCol = vec3(1.0);
+      if (uSpread < 1.0) {
+        float unit = min(uRes.x, uRes.y), t = uTime;
+        // A spot on the sphere from the speck's seeds: the scatter distance, once
+        // a plain random number again, picks the latitude. The contours are
+        // worked out on the sphere itself, so they turn with it.
+        float lat = clamp((aSeed.w / max(uRes.x, uRes.y) - 0.08) / 0.55, 0.0, 1.0);
+        float cz = lat * 2.0 - 1.0;
+        vec3 n = vec3(sqrt(1.0 - cz * cz) * vec2(cos(aSeed.z), sin(aSeed.z)), cz);
+        // The inner orb shows its own share of specks, enough for about 0.6 per
+        // pixel of a disc of radius 0.2 whatever the screen, plus the ones the
+        // paw will need, so none of those pop in on the way. Part of that share
+        // is the shell instead; spread over the larger sphere it is far
+        // thinner. The rest make the inner orb and flow into the paw; only the
+        // specks the print leaves unlit fade, and those do so gradually on the
+        // way in.
+        float count = clamp(uRes.x * uRes.y / 3.0, 30000.0, 340000.0);
+        float share = min(0.5, 0.6 * 3.14159 * 0.04 * unit * unit / count);
+        float pick = fract(lat * 613.7);
+        shell = step(pick, 0.4 * share);
+        fill = step(pick, share) - shell;
+        float on = max(a, step(pick, share));
+        float flow = sin(9.0 * (n.y + 0.22 * sin(3.0 * n.x + t * 0.9) + 0.16 * sin(4.0 * n.z - t * 1.3)) - t * 2.2);
+        float band = pow(0.5 + 0.5 * flow, 3.0);
+        // The orb breathes about once every 1.5s, with slow ripples running over
+        // the surface, and swells up from a little smaller as it fades in. The
+        // shell breathes at half the pace and a third of the depth, and holds
+        // its size from the start.
+        float breath = sin(t * mix(4.2, 2.1, shell));
+        float ripple = sin(dot(n, vec3(4.0, 2.5, -3.0)) + t * 3.1) * sin(dot(n, vec3(-2.0, 3.5, 2.5)) - t * 2.4);
+        float swell = mix((1.0 + 0.045 * breath + 0.05 * ripple + 0.02 * band) * (0.75 + 0.25 * sqrt(uOrbIn)),
+                          1.0 + 0.015 * breath + 0.012 * ripple, shell);
+        float r = unit * mix(ORB_R, 0.31, shell) * swell;
+        float spin = mix(t * 0.55, 1.7 - t * 0.24, shell);
+        vec2 lean = mix(vec2(0.92, 0.39), vec2(0.8, -0.6), shell);
+        vec3 w = n;
+        w.xz = mat2(cos(spin), sin(spin), -sin(spin), cos(spin)) * w.xz;
+        w.yz = mat2(lean.x, lean.y, -lean.y, lean.x) * w.yz;
+        orbP = uRes * vec2(0.5, 0.45) + w.xy * r / (1.0 - 0.22 * w.z);
+        // The far side is dim, the rim and contours bright, and the whole orb
+        // pulses with its breath, its colour drifting through the neon palette.
+        // It is drawn at full strength, so it undoes the paw's density gain.
+        // The shell's near face, in front of the orb and later the paw, is held
+        // back to a veil, leaving its rim and far side to show depth.
+        float facing = 0.5 + 0.5 * w.z, rim = pow(1.0 - abs(w.z), 3.0);
+        float veil = shell * smoothstep(0.0, 0.5, w.z) * (1.0 - rim);
+        // The orb packs the specks sized for a disc of 0.2 into a smaller one,
+        // so each is turned down and fewer of them glow, keeping it from
+        // burning out into a solid ball.
+        float dense = mix(0.55, 1.0, shell);
+        orbA = on * uOrbIn * dense * mix(0.2, 1.0, facing) * (0.3 + 1.1 * band + 0.6 * rim) * (0.8 + 0.3 * breath) * (1.0 - 0.7 * veil) / max(uPawGain, 0.05);
+        orbCol = neon(0.12 * t + 0.3 * n.y + 0.25 * band + 0.06 * breath + 0.2 * shell);
+        orbCol = clamp(mix(vec3(dot(orbCol, vec3(0.3, 0.5, 0.2))), orbCol, 1.3), 0.0, 1.0);
+        orbCol = mix(orbCol, vec3(1.0), 0.35 * band * facing);
+        orbGlow = on * band * smoothstep(0.35, 0.85, facing) * step(fract(aSeed.x * 53.0 + 0.37), mix(0.3, 0.5, shell)) * (1.0 - veil);
+        // The top of the orb lets go first, so the paw pours out of it.
+        lag = mix(aSeed.y, 0.5 + 0.5 * w.y, 0.65);
+      }
+      // The paw itself is in low relief: each pad is a shallow plate, flat on
+      // top and bevelled toward its own outline, with a thin shell behind, so
+      // it reads as a print with some depth rather than a set of cushions. It
+      // is drawn at INNER of the print's size so it fits inside the shell. It
+      // turns and tilts a little and breathes in time with the orb, lit from
+      // the front upper left with a light behind catching its edges. Once it
+      // has spread out the print is flat again and none of this runs.
+      vec2 pawP = aPawPos.xy;
+      float shade = 1.0, rim = 0.0, backLit = 0.0, side = 0.0, thin = 1.0, stray = 0.0;
+      if (uSpread < 1.0) {
+        float unit = min(uRes.x, uRes.y), t = uTime, breath = sin(t * 4.2);
+        vec2 mid = uRes * vec2(0.5, 0.45);
+        // Not every speck that lands in the print stays lit. A fixed, smooth
+        // field over the print, so it turns with it, keeps most specks in a few
+        // denser patches and only a few in the soft gaps between, and the
+        // outline holds on to more of them so the shape still reads. Specks
+        // near their cut-off are dimmed rather than dropped, so there is no edge.
+        // Deeper into each pad the share falls away, so the middles, the heel's
+        // most of all, are left as a light scatter inside a stronger edge. The
+        // depth is nudged by noise, and the edge's hold varies along it, so
+        // neither the hollow nor the outline comes out as an even line.
+        vec2 pc = (aPawPos.xy - mid) / unit;
+        float clump = 0.75 * noise2(pc * 6.0 + 3.7) + 0.25 * noise2(pc * 15.0 + 21.3);
+        float depth = 1.0 - smoothstep(0.04, 0.6, aPawPos.z + 0.3 * (noise2(pc * 11.0 + 7.1) - 0.5));
+        float hold = 0.85 * aPawPos.z * (0.55 + 0.6 * noise2(pc * 8.0 + 31.9));
+        float keepShare = max(mix(0.25, 1.0, smoothstep(0.36, 0.64, clump)) * mix(1.0, 0.18, depth), hold);
+        thin = 1.0 - smoothstep(keepShare - 0.08, keepShare + 0.08, fract(aSeed.z * 61.7));
+        // About one outline speck in eleven comes loose while the paw is held
+        // (see below). Only the lit ones show, so the paw keeps its density.
+        stray = step(fract(aSeed.x * 17.31 + aSeed.y * 3.7), 0.09) * smoothstep(0.25, 0.6, aPawPos.z);
+        vec3 v = vec3(aPawPos.xy - mid, aPawRelief.x * (1.0 + 0.08 * breath)) * INNER;
+        vec3 nn = vec3(aPawRelief.yz, sign(aPawRelief.x) * sqrt(max(0.0, 1.0 - dot(aPawRelief.yz, aPawRelief.yz))));
+        float yaw = 0.3 * sin(t * 0.55 + 0.6), pitch = 0.26 + 0.05 * sin(t * 0.8);
+        mat2 turn = mat2(cos(yaw), sin(yaw), -sin(yaw), cos(yaw)), tilt = mat2(cos(pitch), sin(pitch), -sin(pitch), cos(pitch));
+        v.xz = turn * v.xz; nn.xz = turn * nn.xz;
+        v.yz = tilt * v.yz; nn.yz = tilt * nn.yz;
+        pawP = mid + v.xy * (1.0 + 0.015 * breath) / (1.0 - 0.3 * v.z / unit);
+        float key = max(dot(nn, vec3(-0.6, -0.55, 0.58)), 0.0);
+        float shine = pow(max(dot(nn, vec3(-0.33, -0.3, 0.9)), 0.0), 10.0);
+        backLit = max(dot(nn, vec3(0.55, -0.4, -0.73)), 0.0);
+        rim = 1.0 - abs(nn.z);
+        side = nn.x;
+        shade = (0.35 + 1.1 * key + 0.3 * shine + 0.45 * backLit + 0.3 * rim) * mix(0.55, 1.0, 0.5 + 0.5 * nn.z) * (0.92 + 0.08 * breath);
+      }
+      // The shell specks never leave the orb.
+      float g = clamp(uGather * 1.6 - lag * 0.6, 0.0, 1.0) * (1.0 - shell);
+      g = g * g * (3.0 - 2.0 * g);
+      vec2 path = pawP - orbP;
+      vec2 from = mix(orbP, pawP, g) + vec2(-path.y, path.x) * sin(3.14159 * g) * 0.25;
+      // Part two: the paw and the orb let go and each speck swings out to its
+      // own place, leaving the intro's lighting behind as it goes.
       float s = clamp(uSpread * 1.5 - fract(aSeed.y * 13.7) * 0.5, 0.0, 1.0);
       s = s * s * (3.0 - 2.0 * s);
-      vec2 way = aHome - aPawPos.xy;
+      a = mix(mix(orbA, a, s), mix(max(a, fill) * shade * thin, a, s), g);
+      vec2 way = aHome - from;
       vec2 swing = vec2(-way.y, way.x) * sin(3.14159 * s) * mix(0.08, 0.26, fract(aSeed.x * 37.0));
       // While the paw is held, its outline breathes. Neighbouring specks ride
       // the same slow field, so the edge swells and drifts as one soft shape
       // instead of each speck twitching alone, and the motion thins out toward
       // the middle. It fades in as each speck lands and out as it lets go.
-      float soft = aPawPos.z * pow(g, 6.0) * (1.0 - s);
+      float live = pow(g, 4.0) * (1.0 - s);
+      float soft = aPawPos.z * live * g * g;
       vec2 p = mix(from, aHome, s) + swing + aOff;
       // Once the paw has let go every speck's share is zero, so skip the noise.
-      if (uSpread < 1.0 && soft > 0.0) {
+      if (uSpread < 1.0 && live > 0.0) {
         float unit = min(uRes.x, uRes.y);
         vec2 q = aPawPos.xy / unit * 7.0;
         float t = uTime * 0.3;
+        vec2 outward = vec2(cos(aPawPos.w), sin(aPawPos.w));
         // In and out along the outline, a different amount at each stretch of
         // it, so the paw never grows or shrinks as a whole.
         float breath = noise2(q * 0.5 + vec2(-t * 1.3, t * 1.3 + 23.0)) - 0.5;
         vec2 flow = vec2(noise2(q + vec2(t, 3.0)), noise2(q + vec2(11.0, -t))) - 0.5;
-        p += (vec2(cos(aPawPos.w), sin(aPawPos.w)) * breath + flow * 0.6) * soft * unit * 0.005;
+        p += (outward * breath + flow * 0.6) * soft * unit * 0.008;
         a *= 1.0 - 0.14 * soft * noise2(q * 1.4 + vec2(t * 1.2 + 41.0, 7.0));
+        // The pads are alive too: a slow current runs through the print, so
+        // patches of neighbouring specks drift together and a soft wave rolls
+        // across from toe to heel, and each speck sways a little on its own
+        // slow beat. All of it is smooth in time, so nothing flickers.
+        vec2 cur = vec2(noise2(q * 1.3 + vec2(uTime * 0.7, 51.0)), noise2(q * 1.3 + vec2(87.0, -uTime * 0.6))) - 0.5;
+        float wave = sin(dot(q, vec2(0.5, 0.9)) * 2.2 - uTime * 2.6);
+        vec2 sway = vec2(sin(uTime * mix(1.4, 2.6, aSeed.y) + aSeed.z * 5.0), cos(uTime * mix(1.2, 2.3, fract(aSeed.y * 5.3)) + aSeed.z * 3.0));
+        p += (cur * 1.6 + outward * wave * 0.25 + sway * 0.2) * live * unit * 0.012;
+        // The loose outline specks (stray, above): each drifts out from the
+        // edge on its own slow loop, wanders a little to the side, then settles
+        // back, so a handful are always out and none goes far. They fade a
+        // little while out, and when the paw lets go they just go home.
+        if (stray > 0.0) {
+          float ph = fract(aSeed.z * 2.71) * 6.2832;
+          float loose = pow(0.5 - 0.5 * cos(uTime * mix(1.5, 2.8, fract(aSeed.x * 7.7)) + ph), 1.5);
+          vec2 wander = vec2(-outward.y, outward.x) * sin(uTime * mix(0.9, 1.7, fract(aSeed.y * 9.1)) + ph * 1.3);
+          p += (outward * mix(0.025, 0.06, fract(aSeed.x * 3.3)) * loose + wander * 0.018 * loose) * stray * live * unit;
+          a *= 1.0 - 0.35 * loose * stray * live;
+        }
       }
 
       // Colour. It only comes in once the paw has let go, and stays out of the
@@ -188,7 +330,7 @@
       // reads as white with patches of colour rather than coloured noise. The
       // outline is richer than the middle and a share of the coloured outline
       // specks glow. Each speck hands over to the dune colours as it lets go.
-      float intro = (1.0 - s) * (1.0 - uPaw);
+      float intro = (1.0 - s) * (1.0 - uPaw) * (1.0 - shell);
       float pawTint = 0.0, pawGlow = 0.0;
       if (intro > 0.0) {
         vec2 c = (aPawPos.xy - uRes * vec2(0.5, 0.45)) / (0.5 * min(uRes.x, uRes.y));
@@ -200,14 +342,25 @@
         pawTint = intro * accent * mix(0.8, 1.0, aPawPos.z) * mix(0.6, 1.0, g);
         col = mix(col, pawCol, pawTint);
         pawGlow = intro * accent * g * smoothstep(0.3, 0.7, aPawPos.z) * step(fract(aSeed.x * 53.0), 0.4);
+        // Where the relief turns away, a share of the specks pick up soft neon
+        // from the light behind, the hue drifting with the side it faces.
+        float edge = intro * step(fract(aSeed.z * 3.71), 0.45) * clamp(smoothstep(0.12, 0.45, rim) + 0.6 * backLit, 0.0, 1.0);
+        col = mix(col, neon(ph + 0.12 * side + 0.1), 0.75 * edge);
+        pawTint = max(pawTint, 0.6 * edge);
+        pawGlow = max(pawGlow, edge * g * step(fract(aSeed.x * 29.0), 0.35));
       }
-      float glow = max(max(tint, hit), pawGlow * 0.8) * step(0.02, a);
-      // How much of the glow is the idle crest or the paw rather than a click.
-      float amb = (tint + pawGlow) / (tint + pawGlow + hit + 0.0001);
+      // The orb's colours hand over to the paw's as each speck leaves it, and
+      // the shell's to the dunes' as it lets go.
+      float orb = (1.0 - g) * (1.0 - s * shell);
+      col = mix(col, orbCol, orb);
+      orbGlow *= orb;
+      float glow = max(max(tint, hit), max(pawGlow * 0.8, orbGlow)) * step(0.02, a);
+      // How much of the glow is the idle crest, the paw or the orb rather than a click.
+      float amb = (tint + pawGlow + orbGlow) / (tint + pawGlow + orbGlow + hit + 0.0001);
 
       // Scrolling dims the land; the crest neon dims less, so it still reads.
       // Neon reads darker than white, so the coloured paw specks are lifted a little.
-      vAlpha = a * g * mix(uPawGain, 1.0, s) * mix(uDim, sqrt(uDim), tint * amb) * (1.0 + 0.3 * pawTint);
+      vAlpha = a * mix(uPawGain, 1.0, s) * mix(uDim, sqrt(uDim), tint * amb) * (1.0 + 0.3 * pawTint);
       vColor = col;
       vec2 clip = p / uRes * 2.0 - 1.0;
       gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
@@ -256,12 +409,12 @@
     gl.clearColor(10 / 255, 10 / 255, 10 / 255, 1);
 
     const U = {};
-    ['uRes', 'uDpr', 'uTime', 'uGather', 'uSpread', 'uPawGain', 'uScroll', 'uPan', 'uDim', 'uPaw'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+    ['uRes', 'uDpr', 'uTime', 'uOrbIn', 'uGather', 'uSpread', 'uPawGain', 'uScroll', 'uPan', 'uDim', 'uPaw'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
     const attr = (name, size) => {
       const buf = gl.createBuffer(), loc = gl.getAttribLocation(prog, name);
       return { buf, loc, size };
     };
-    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 4), burst: attr('aBurst', 3) };
+    const A = { home: attr('aHome', 2), off: attr('aOff', 2), seed: attr('aSeed', 4), paw: attr('aPaw', 1), pawPos: attr('aPawPos', 4), relief: attr('aPawRelief', 3), burst: attr('aBurst', 3) };
     const upload = (a, data, usage) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, a.buf);
       gl.bufferData(gl.ARRAY_BUFFER, data, usage);
@@ -277,6 +430,8 @@
     const CELL = 16, SWEEP = 0.4;
     let moving, listed = true, cols = 0, rows = 0, cellStart, cellItems;
     let clock = 12;   // the shader's uTime as of the last frame
+    // Whether the intro paw is still to come or under way, so it needs its relief.
+    let intro = !reduced;
 
     // One paw drawing feeds two things: a per-speck brightness mask (the easter
     // egg lights specks where they already are) and a per-speck landing spot
@@ -293,7 +448,8 @@
       g.addColorStop(0, 'rgba(255,255,255,.98)');
       g.addColorStop(1, 'rgba(255,255,255,.5)');
       ctx.fillStyle = g;
-      [[14, 26, 6, 8, -20], [26, 14, 6.5, 9, -8], [40, 14, 6.5, 9, 8], [52, 26, 6, 8, 20]].forEach(([x, y, rx, ry, r]) => {
+      const toes = [[14, 26, 6, 8, -20], [26, 14, 6.5, 9, -8], [40, 14, 6.5, 9, 8], [52, 26, 6, 8, 20]];
+      toes.forEach(([x, y, rx, ry, r]) => {
         ctx.beginPath(); ctx.ellipse(x, y, rx, ry, r * Math.PI / 180, 0, Math.PI * 2); ctx.fill();
       });
       ctx.fill(new Path2D('M32 30C22 30 14 40 14 48c0 7 6 10 11 8 4-1.5 10-1.5 14 0 5 2 11-1 11-8 0-8-8-18-18-18z'));
@@ -344,8 +500,43 @@
       // Only the specks lit in the landscape show up, roughly LIT of them. Turn
       // them down if that many would pack the paw into a solid white shape.
       const LIT = 0.12, WANT = 0.8;   // share of specks lit; specks per px wanted
-      const gain = Math.min(1, WANT * (weight / (s * s)) / (LIT * N));
-      return { mask, pos, gain };
+      const gain = Math.min(1, WANT * (weight / (s * s)) * INNER * INNER / (LIT * N));
+      return { mask, pos, gain, relief: intro ? relief() : null };
+
+      // The intro paw's relief. Each pad is a low plate: a speck's height
+      // follows a circle's profile over the outer part of the way in to that
+      // pad's deepest point and is flat beyond it, and stays a fraction of the
+      // pad's width, so the print keeps its outline instead of puffing up into
+      // beans and a dome. A third of the specks make a thinner shell behind.
+      // The normal leans out along the way out of the paw, mostly on the bevel
+      // and only a little across the flat top, so the light still moves on it.
+      function relief() {
+        const ox = w / 2 - size / 2, oy = h * 0.45 - size / 2;
+        const toe = (x, y) => {
+          const ux = (x + 0.5 - ox) / k, uy = (y + 0.5 - oy) / k;
+          for (let t = 0; t < toes.length; t++) {
+            const [cx, cy, rx, ry, r] = toes[t], c = Math.cos(r * Math.PI / 180), sn = Math.sin(r * Math.PI / 180);
+            const lx = (ux - cx) * c + (uy - cy) * sn, ly = (uy - cy) * c - (ux - cx) * sn;
+            if ((lx / (rx + 1.5)) ** 2 + (ly / (ry + 1.5)) ** 2 <= 1) return t;
+          }
+          return toes.length;   // the main pad
+        };
+        const deepest = new Float32Array(toes.length + 1);
+        for (const p of inside) { const t = toe(p % w, p / w | 0); deepest[t] = Math.max(deepest[t], dist[p]); }
+        const out = new Float32Array(N * 3);
+        for (let i = 0; i < N; i++) {
+          const x = Math.min(w - 1, pos[i * 4] * s | 0), y = Math.min(h - 1, pos[i * 4 + 1] * s | 0), p = y * w + x;
+          const deep = deepest[toe(x, y)];
+          if (!dist[p] || !deep) continue;
+          const u = Math.min(1, Math.max(0, (dist[p] - Math.random()) / deep));
+          const top = Math.min(1, u * 1.6), lift = Math.sqrt(top * (2 - top)), back = Math.random() < 0.33, f = back ? 0.14 : 0.36;
+          const lean = (0.65 * (1 - top) + 0.15 * (1 - u)) * (back ? 0.5 : 1);
+          out[i * 3] = (back ? -f : f) * (deep / s) * lift;
+          out[i * 3 + 1] = lean * Math.cos(pos[i * 4 + 3]);
+          out[i * 3 + 2] = lean * Math.sin(pos[i * 4 + 3]);
+        }
+        return out;
+      }
     }
 
     function build() {
@@ -388,6 +579,7 @@
       const paw = pawData();
       upload(A.paw, paw.mask, gl.STATIC_DRAW);
       upload(A.pawPos, paw.pos, gl.STATIC_DRAW);
+      if (paw.relief) upload(A.relief, paw.relief, gl.STATIC_DRAW);
       gl.uniform1f(U.uPawGain, paw.gain);
       upload(A.off, off, gl.DYNAMIC_DRAW);
       hits = new Float32Array(N * 3);
@@ -536,10 +728,10 @@
       }
     }
 
-    const GATHER = 1.3, HOLD = 0.6, SPREAD = 2.0;
-    // Once the clock runs, the text is due at GATHER + HOLD. The watchdog only
-    // covers frames stopping before then, so it can never beat the paw.
-    const INTRO_LIMIT = (GATHER + HOLD) * 1000 + 1500;
+    const ORB = 1.0, GATHER = 1.3, HOLD = 1.1, SPREAD = 2.0;
+    // Once the clock runs, the text is due at ORB + GATHER + HOLD. The watchdog
+    // only covers frames stopping before then, so it can never beat the paw.
+    const INTRO_LIMIT = (ORB + GATHER + HOLD) * 1000 + 1500;
     let t0 = 0, last = 0, scrollS = 0, pan = 0, paw = 0, pawTarget = 0;
     const clamp = (v, m) => Math.max(-m, Math.min(m, v));
     function frame(now) {
@@ -555,7 +747,7 @@
       }
       const t = (now - t0) / 1000;
       // The paw has gathered and held: bring the name in as it spreads.
-      if (!shown && t >= GATHER + HOLD) reveal();
+      if (!shown && t >= ORB + GATHER + HOLD) reveal();
       // dt in 60fps frames, so motion is the same on 60Hz and 120Hz screens.
       const dt = Math.min((now - last) / 16.667, 3) || 1;
       last = now;
@@ -575,9 +767,16 @@
       }
       clock = reduced ? 12 : t + 12;
       gl.uniform1f(U.uTime, clock);
-      // Intro timeline, in seconds: gather into the paw, hold, spread out.
-      gl.uniform1f(U.uGather, reduced ? 1 : Math.min(t / GATHER, 1));
-      gl.uniform1f(U.uSpread, reduced ? 1 : Math.min(Math.max((t - GATHER - HOLD) / SPREAD, 0), 1));
+      // Intro timeline, in seconds: the orb and the shell round it fade in and
+      // breathe, the orb pours into the paw inside the shell, both hold, then
+      // spread out. Keep its fade current
+      // throughout the shell's lifetime, including after a paused frame.
+      if (t < ORB + GATHER + HOLD + SPREAD) gl.uniform1f(U.uOrbIn, Math.min(t / 0.4, 1));
+      gl.uniform1f(U.uGather, reduced ? 1 : Math.min(Math.max((t - ORB) / GATHER, 0), 1));
+      gl.uniform1f(U.uSpread, reduced ? 1 : Math.min(Math.max((t - ORB - GATHER - HOLD) / SPREAD, 0), 1));
+      // Once the paw has spread, the shader no longer reads its relief: drop
+      // the buffer and feed the attribute a constant instead.
+      if (intro && t >= ORB + GATHER + HOLD + SPREAD) endIntro();
       gl.uniform1f(U.uScroll, scrollS);
       gl.uniform1f(U.uPan, reduced ? 0 : pan);
       gl.uniform1f(U.uDim, dim);
@@ -586,6 +785,14 @@
       gl.drawArrays(gl.POINTS, 0, N);
       requestAnimationFrame(frame);
     }
+
+    function endIntro() {
+      intro = false;
+      gl.disableVertexAttribArray(A.relief.loc);
+      gl.vertexAttrib3f(A.relief.loc, 0, 0, 0);
+      gl.deleteBuffer(A.relief.buf);
+    }
+    if (!intro) endIntro();
 
     requestAnimationFrame(frame);
 
@@ -893,7 +1100,7 @@
 
   /* ---------- Screenshots: click to view full size ---------- */
   const box = $('#lightbox'), boxImg = $('img', box), boxVid = $('video', box), boxCap = $('p', box);
-  let group = [], at = 0, opener = null;
+  let group = [], at = 0, opener = null, pageY = 0;
   // Stop the clip and drop its source, so nothing keeps playing or loading unseen.
   function stopVideo() {
     if (!boxVid.hasAttribute('src')) return;
@@ -934,11 +1141,15 @@
     stopVideo();
     box.classList.remove('is-open');
     root.classList.remove('is-locked');
+    // Taking the scroll lock off can put the page back at the top in some
+    // browsers, so return to where it was, without the smooth scroll.
+    if (scrollY !== pageY) scrollTo({ top: pageY, behavior: 'instant' });
     syncClips();
     if (opener) opener.focus({ preventScroll: true });
   }
   $$('.shot').forEach(btn => btn.addEventListener('click', () => {
     opener = btn;
+    pageY = scrollY;
     group = $$('.shot', btn.closest('.shots'));
     box.classList.add('is-open');
     root.classList.add('is-locked');
