@@ -558,30 +558,202 @@
   }
 
   /* ---------- Cursor ---------- */
+  // A dot sits exactly on the pointer. A faint neon ring trails it with two
+  // glowing orbs circling on opposite sides. Over anything clickable, or
+  // whatever the keyboard has just focused, that same ring wraps the
+  // element's outline instead and the orbs carry on round it, so there is
+  // only ever one pair on screen.
   const dot = $('#cursorDot'), ring = $('#cursorRing'), label = $('#cursorLabel');
   if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
     root.classList.add('has-cursor');
-    let rx = 0, ry = 0, placed = false;
+    const svg = $('svg', ring), path = $('#cursorShape'), [orbA, orbB] = $$('.cursor__orb', ring);
+    const lb = $('#lightbox'), lbVid = $('video', lb);
+    const TARGETS = 'a, button, summary, [data-cursor]';
+    const FREE = 34, PRESSED = 26, SHOWN = { visibilityProperty: true };
+    let mx = 0, my = 0, rx = 0, ry = 0, placed = false, inside = false, pressed = false;
+    // over: what the pointer is on. focused: what the keyboard focused. byKey:
+    // the keyboard moved last, so the focused element owns the ring.
+    let over = null, focused = null, byKey = false;
+    let lock = null, pad = 0, rad = 0, shown = false, snap = true, recheckUntil = 0;
+    // The ring's box (centre, size, corner radius), what was last drawn, and
+    // where the first orb is as a share of the way round.
+    let cx = 0, cy = 0, w = FREE, h = FREE, r = FREE / 2, dw = 0, dh = 0, dr = -1, len = 1, phase = 0;
+    let last = performance.now();
 
-    addEventListener('mousemove', e => {
-      if (!placed) { rx = e.clientX; ry = e.clientY; placed = true; }
-      root.classList.add('cursor-on');
-      dot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-      const target = e.target.closest('a, button, summary, [data-cursor]');
-      // The ring fills over links and buttons, but not over screenshots, where
-      // an inverted disc would hide what you are looking at.
-      root.classList.toggle('cursor-hover', !!target && target.matches('a, button, summary') && !target.classList.contains('shot'));
+    // Each orb trails a short comet tail along the outline: a row of soft dots
+    // packed close enough to overlap into one smooth streak, each a little
+    // smaller and fainter than the one before, shading from cyan through
+    // violet to pink. The two tails share one set of blends, one per step.
+    // With reduced motion the orbs stay put, so there are no tails.
+    const TRAIL = reduced ? 0 : 28, NS = 'http://www.w3.org/2000/svg';
+    const tailA = [], tailB = [], defs = $('defs', svg), tails = document.createElementNS(NS, 'g');
+    const tint = t => t < 0.5
+      ? [64 + 99 * t * 2, 235 - 133 * t * 2, 255]
+      : [163 + 92 * (t * 2 - 1), 102 - 15 * (t * 2 - 1), 255 - 56 * (t * 2 - 1)];
+    for (let i = 0; i < TRAIL; i++) {
+      const t = (i + 1) / TRAIL, fade = Math.pow(1 - t, 1.5);
+      const c = `rgb(${tint(t).map(Math.round)})`, grad = document.createElementNS(NS, 'radialGradient');
+      grad.id = `cursorTrail${i}`;
+      grad.innerHTML = `<stop offset="0" stop-color="${c}"/><stop offset=".45" stop-color="${c}" stop-opacity=".5"/><stop offset="1" stop-color="${c}" stop-opacity="0"/>`;
+      defs.appendChild(grad);
+      for (const tail of [tailA, tailB]) {
+        const dotEl = document.createElementNS(NS, 'circle');
+        dotEl.setAttribute('r', (1.2 + 3.3 * Math.pow(1 - t, 0.8)).toFixed(2));
+        dotEl.setAttribute('fill', `url(#${grad.id})`);
+        dotEl.setAttribute('fill-opacity', (0.75 * fade).toFixed(3));
+        // Fainter steps go underneath, so the bright head stays on top.
+        tails.insertBefore(dotEl, tails.firstChild);
+        tail.push(dotEl);
+      }
+    }
+    tails.setAttribute('class', 'cursor__trail');
+    svg.insertBefore(tails, orbA);
+
+    // The ring never wraps the lightbox backdrop or its video, nor anything
+    // behind the lightbox while it is open.
+    const frameable = el => !!el && el !== lb && el !== lbVid && (!lb.classList.contains('is-open') || lb.contains(el));
+    function hoverFrom(el) {
+      const target = el && el.closest(TARGETS);
+      over = frameable(target) ? target : null;
+      // Over the video, its own controls and the system pointer take over.
+      root.classList.toggle('cursor-native', !!el && el === lbVid);
       const text = target && target.dataset.cursor;
       root.classList.toggle('cursor-labelled', !!text);
-      if (text) label.textContent = text;
+      if (text && label.textContent !== text) label.textContent = text;
+    }
+    // Things can move or vanish under a still pointer (scrolling, the lightbox,
+    // a case study opening), so look again at what is under it for a moment.
+    const recheck = () => { recheckUntil = performance.now() + 450; };
+    // The point a share s of the way round the outline as drawn, clockwise
+    // from the left end of its top edge, where SVG starts a rounded rect.
+    // The second half of the lap is the first half mirrored through the centre.
+    function along(s) {
+      if (s >= 0.5) { const [x, y] = along(s - 0.5); return [dw - x, dh - y]; }
+      const sx = dw - 2 * dr, sy = dh - 2 * dr, q = Math.PI * dr / 2;
+      let d = s * len;
+      if (d <= sx) return [dr + d, 0];
+      d -= sx;
+      if (dr > 0 && d <= q) return [dw - dr + dr * Math.sin(d / dr), dr - dr * Math.cos(d / dr)];
+      d -= q;
+      if (d <= sy) return [dw, dr + d];
+      const a = dr > 0 ? Math.min(d - sy, q) / dr : 0;
+      return [dw - dr + dr * Math.cos(a), dh - dr + dr * Math.sin(a)];
+    }
+
+    addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') { inside = false; root.classList.remove('cursor-on'); return; }
+      mx = e.clientX; my = e.clientY;
+      if (!placed) { rx = mx; ry = my; placed = true; }
+      inside = true; byKey = false;
+      if (pressed && !e.buttons) pressed = false;
+      root.classList.add('cursor-on');
+      dot.style.transform = `translate(${mx}px, ${my}px)`;
+      hoverFrom(e.target);
+    }, { passive: true });
+    const away = () => {
+      inside = pressed = false; over = null;
+      root.classList.remove('cursor-on', 'cursor-labelled', 'cursor-native');
+    };
+    document.addEventListener('mouseleave', away);
+    addEventListener('blur', away);
+    addEventListener('pointerdown', e => { if (e.pointerType !== 'touch') pressed = true; });
+    addEventListener('pointerup', () => { pressed = false; });
+    addEventListener('pointercancel', () => { pressed = false; });
+    addEventListener('scroll', recheck, { passive: true });
+    addEventListener('resize', recheck);
+    addEventListener('click', recheck);
+    addEventListener('keydown', recheck);
+    document.addEventListener('toggle', recheck, true);
+
+    // Keyboard focus moves the ring there without the mouse. A mouse click
+    // focuses things too, but does not match :focus-visible, so it is ignored.
+    document.addEventListener('focusin', e => {
+      const el = e.target;
+      focused = el.matches(TARGETS) && el.matches(':focus-visible') && frameable(el) ? el : null;
+      if (focused) byKey = true;
     });
-    document.addEventListener('mouseleave', () => root.classList.remove('cursor-on'));
-    addEventListener('mousedown', () => root.classList.add('cursor-down'));
-    addEventListener('mouseup', () => root.classList.remove('cursor-down'));
+    document.addEventListener('focusout', e => { if (e.target === focused) focused = null; });
 
     (function follow() {
-      rx += (ptr.x - rx) * 0.17; ry += (ptr.y - ry) * 0.17;
-      ring.style.transform = `translate(${rx}px, ${ry}px)`;
+      const now = performance.now();
+      const dt = Math.min((now - last) / 16.667, 3) || 1;
+      last = now;
+      if (inside && !byKey && now < recheckUntil) hoverFrom(document.elementFromPoint(mx, my));
+
+      let want = byKey && focused ? focused : inside ? over : null, b = null;
+      if (want) {
+        b = want.getBoundingClientRect();
+        if (!want.isConnected || (!b.width && !b.height) || (want.checkVisibility && !want.checkVisibility(SHOWN))) {
+          // Gone or hidden: let go, and look again at what the pointer is on.
+          if (want === focused) focused = null;
+          if (want === over) { over = null; recheck(); }
+          want = b = null;
+        }
+      }
+      if (want !== lock) {
+        if (lock) lock.classList.remove('is-cursor-target');
+        lock = want;
+        root.classList.toggle('cursor-locked', !!lock);
+        if (lock) {
+          lock.classList.add('is-cursor-target');
+          // The hero buttons draw their own edge, so the ring sits on it.
+          // Anything else gets a little room, rounded like the element.
+          pad = lock.matches('.home__actions a') ? 1 : 6;
+          rad = (parseFloat(getComputedStyle(lock).borderTopLeftRadius) || 2) + pad;
+        }
+      }
+
+      // Where the ring should be: round the locked element, else on the pointer.
+      let tx = mx, ty = my, tw = pressed ? PRESSED : FREE, th = tw, tr = tw / 2;
+      if (lock) {
+        const p = pressed ? pad - 2 : pad;
+        tx = b.left + b.width / 2; ty = b.top + b.height / 2;
+        tw = b.width + p * 2; th = b.height + p * 2;
+        tr = Math.min(rad - pad + p, tw / 2, th / 2);
+      }
+
+      const show = !!lock || inside;
+      if (show !== shown) { shown = show; root.classList.toggle('cursor-ring-on', show); }
+      if (!show) snap = true;
+      else {
+        // Appearing: start in place rather than flying in from the last spot.
+        // Reduced motion: always go straight there.
+        const kp = snap || reduced ? 1 : 1 - Math.pow(lock ? 0.7 : 0.83, dt);
+        const ks = snap || reduced ? 1 : 1 - Math.pow(0.7, dt);
+        snap = false;
+        cx += (tx - cx) * kp; cy += (ty - cy) * kp;
+        w += (tw - w) * ks; h += (th - h) * ks; r += (tr - r) * ks;
+        r = Math.min(r, w / 2, h / 2);
+        if (Math.abs(w - dw) > 0.05 || Math.abs(h - dh) > 0.05 || Math.abs(r - dr) > 0.05) {
+          dw = w; dh = h; dr = r;
+          svg.setAttribute('width', w); svg.setAttribute('height', h);
+          path.setAttribute('width', w); path.setAttribute('height', h); path.setAttribute('rx', r);
+          // Perimeter of the rounded rectangle.
+          len = 2 * (w + h) - (8 - 2 * Math.PI) * r;
+        }
+        ring.style.transform = `translate(${cx - w / 2}px, ${cy - h / 2}px)`;
+        // One lap takes longer round bigger things, within limits. The phase is
+        // a share of the way round, so it carries on unbroken as the ring
+        // changes shape. With reduced motion the orbs stay put.
+        if (!reduced) phase = (phase + dt * 0.016667 / Math.min(Math.max(len / 170, 1.8), 4.5)) % 1;
+        // The outline is the same turned half round, so the second orb, half a
+        // lap on, is the first one mirrored through the centre.
+        const [ox, oy] = along(phase);
+        orbA.setAttribute('cx', ox); orbA.setAttribute('cy', oy);
+        orbB.setAttribute('cx', dw - ox); orbB.setAttribute('cy', dh - oy);
+        // The tails run back along the outline as drawn, so they bend round
+        // corners with it. They are a little longer round bigger things,
+        // within limits, and the second is the first mirrored like its orb.
+        const gap = Math.min(Math.max(len * 0.1, 22), 70) / TRAIL / len;
+        for (let i = 0; i < TRAIL; i++) {
+          const [x, y] = along(((phase - (i + 1) * gap) % 1 + 1) % 1);
+          tailA[i].setAttribute('cx', x); tailA[i].setAttribute('cy', y);
+          tailB[i].setAttribute('cx', dw - x); tailB[i].setAttribute('cy', dh - y);
+        }
+      }
+
+      rx += (mx - rx) * 0.17; ry += (my - ry) * 0.17;
+      if (reduced) { rx = mx; ry = my; }
       label.style.transform = `translate(${rx}px, ${ry}px)`;
       requestAnimationFrame(follow);
     })();

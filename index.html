@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=29">
+  <link rel="stylesheet" href="styles.css?v=30">
   <script>
     // The .js class lets CSS hide things that script.js will animate in. If that
     // script is blocked, fails or never starts, drop the class so nothing stays hidden.
@@ -59,8 +59,8 @@
         </div>
         <p class="home__pitch">I work alongside teams to understand how work gets done, identify bottlenecks, then build and integrate practical systems and solutions.</p>
         <nav class="home__nav home__actions" aria-label="Start here">
-          <a href="#projects">View Projects <span aria-hidden="true">↓</span></a>
-          <a href="#contact">Discuss a Workflow <span aria-hidden="true">→</span></a>
+          <a href="#projects"><span class="home__ring" aria-hidden="true"></span>View Projects <span aria-hidden="true">↓</span></a>
+          <a href="#contact"><span class="home__ring" aria-hidden="true"></span>Discuss a Workflow <span aria-hidden="true">→</span></a>
         </nav>
       </div>
     </section>
@@ -411,10 +411,30 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <div class="cursor cursor--ring" id="cursorRing" aria-hidden="true"></div>
+  <div class="cursor cursor--ring" id="cursorRing" aria-hidden="true">
+    <svg class="cursor__svg" width="34" height="34" focusable="false">
+      <defs>
+        <linearGradient id="cursorEdge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#40ebff"/><stop offset=".5" stop-color="#a366ff"/><stop offset="1" stop-color="#ff57c7"/>
+        </linearGradient>
+        <radialGradient id="cursorOrb">
+          <stop offset="0" stop-color="#fff"/>
+          <stop offset=".14" stop-color="#e6fcff" stop-opacity=".95"/>
+          <stop offset=".34" stop-color="#40ebff" stop-opacity=".8"/>
+          <stop offset=".58" stop-color="#a366ff" stop-opacity=".45"/>
+          <stop offset=".8" stop-color="#ff57c7" stop-opacity=".16"/>
+          <stop offset="1" stop-color="#ff57c7" stop-opacity="0"/>
+        </radialGradient>
+        <rect id="cursorShape" width="34" height="34" rx="17"/>
+      </defs>
+      <use href="#cursorShape" class="cursor__edge"/>
+      <circle class="cursor__orb" r="4.5" cx="17" cy="0"/>
+      <circle class="cursor__orb" r="4.5" cx="17" cy="34"/>
+    </svg>
+  </div>
   <div class="cursor cursor--dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor cursor--label" id="cursorLabel" aria-hidden="true"></div>
 
-  <script src="script.js?v=29"></script>
+  <script src="script.js?v=30"></script>
 </body>
 </html>

@@ -85,12 +85,82 @@ main, .footer { position: relative; z-index: 1; }
   transform: scaleX(0); transform-origin: right;
   transition: transform .5s var(--ease);
 }
-.home__actions a::before {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 2px;
-  height: 1px; background: var(--line);
-}
 .home__nav a:hover::after, .home__nav a:focus-visible::after { transform: scaleX(1); transform-origin: left; }
 .home__nav:hover a:not(:hover) { opacity: .4; }
+
+/* Hero actions: dark pill with a neon edge that breathes at rest while its
+   colors drift slowly round the outline. Hover or keyboard focus brings up
+   the full cyan/violet/pink outline and two soft glows that lap that button,
+   half a lap apart. With the custom cursor on, the cursor's own orbs do that
+   (see Cursor), so the button's glows below stay off. Colors match the dune
+   shader's neon(). */
+@property --home-spark { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --home-hue { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.home__actions { gap: 12px 14px; }
+.home__actions a {
+  display: inline-flex; align-items: center; gap: .55em;
+  min-height: 44px; padding: 0 18px;
+  border-radius: 10px;
+  background: rgba(10, 10, 12, .78);
+  box-shadow: 0 0 14px -6px rgba(64, 235, 255, .35);
+  color: rgba(237, 237, 237, .9);
+  transition: opacity .35s, color .3s, box-shadow .4s ease;
+}
+.home__actions a::after { content: none; }
+.home__ring {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(64, 235, 255, .55));
+  animation: home-halo 9s ease-in-out infinite alternate;
+}
+.home__ring::before, .home__ring::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+.home__ring::before {
+  padding: 1px;
+  background: conic-gradient(from calc(200deg + var(--home-hue)), #40ebff, #a366ff, #ff57c7, #a366ff, #40ebff);
+  opacity: .5;
+  animation: home-hue 10s linear infinite, home-breathe 5s ease-in-out infinite alternate;
+  transition: opacity .4s ease;
+}
+.home__ring::after {
+  padding: 2px;
+  background: repeating-conic-gradient(from var(--home-spark), transparent 0deg 148deg, rgba(64, 235, 255, .45) 160deg, rgba(190, 160, 255, .95) 166deg, rgba(255, 87, 199, .45) 172deg, transparent 180deg);
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+@keyframes home-spark { to { --home-spark: 360deg; } }
+@keyframes home-hue { to { --home-hue: 360deg; } }
+@keyframes home-breathe { from { opacity: .45; } to { opacity: .56; } }
+@keyframes home-halo {
+  from { filter: drop-shadow(0 0 3px rgba(64, 235, 255, .55)); }
+  50% { filter: drop-shadow(0 0 5px rgba(163, 102, 255, .6)); }
+  to { filter: drop-shadow(0 0 4px rgba(255, 87, 199, .5)); }
+}
+/* Lit outline: the colors keep drifting, the breathing stops at full. */
+.home__actions a:hover .home__ring::before,
+.home__actions a:focus-visible .home__ring::before { animation: home-hue 10s linear infinite; }
+.has-cursor .home__ring::after { display: none; }
+/* Other button dims only slightly while one is hovered. */
+.home__actions:hover a:not(:hover) { opacity: 1; }
+@media (hover: hover) {
+  .home__actions:hover a:not(:hover) { opacity: .72; }
+  .home__actions a:hover {
+    color: #fff;
+    box-shadow: 0 0 18px -4px rgba(64, 235, 255, .45), 0 0 26px -8px rgba(255, 87, 199, .4);
+  }
+  .home__actions a:hover .home__ring::before { opacity: 1; }
+  .home__actions a:hover .home__ring::after { opacity: 1; animation: home-spark 3.2s linear infinite; }
+}
+.home__actions a:focus-visible {
+  color: #fff;
+  box-shadow: 0 0 18px -4px rgba(64, 235, 255, .45), 0 0 26px -8px rgba(255, 87, 199, .4);
+}
+.home__actions a:focus-visible .home__ring::before { opacity: 1; }
+.home__actions a:focus-visible .home__ring::after { opacity: 1; animation: home-spark 3.2s linear infinite; }
 
 /* Name, proposition and links come in with the grain's first frame (.is-live),
    while the paw gathers, so what Kyle does is readable within about a second
@@ -169,12 +239,24 @@ main, .footer { position: relative; z-index: 1; }
 .shots { display: flex; gap: 12px; margin-top: clamp(28px, 5vh, 48px); max-width: calc(var(--sum) * 440px + 24px); }
 .shot {
   flex: var(--ar) 1 0; min-width: 0;
-  display: block; overflow: hidden;
+  display: block; overflow: hidden; position: relative;
   border: 1px solid var(--line); border-radius: 6px;
   background: #111;
-  transition: border-color .3s;
+  transition: border-color .3s, box-shadow .4s ease;
 }
-.shot:hover, .shot:focus-visible { border-color: var(--mid); }
+/* The shot under the pointer or keyboard gets the hero buttons' neon halo.
+   box-shadow sits outside the shot, so overflow: hidden still clips the media
+   and nothing moves. Hover only where hover is real, so taps do not stick. */
+.shot:focus-visible {
+  border-color: rgba(163, 102, 255, .7); z-index: 1;
+  box-shadow: 0 0 20px -4px rgba(64, 235, 255, .55), 0 0 28px -8px rgba(255, 87, 199, .5);
+}
+@media (hover: hover) {
+  .shot:hover {
+    border-color: rgba(163, 102, 255, .7); z-index: 1;
+    box-shadow: 0 0 20px -4px rgba(64, 235, 255, .55), 0 0 28px -8px rgba(255, 87, 199, .5);
+  }
+}
 .shot img { display: block; width: 100%; height: auto; transition: filter .7s; }
 /* Colour only on the project you are looking at; the rest stay monochrome. */
 .js .project:not(.is-focus):not(:hover) .shot img,
@@ -376,29 +458,39 @@ summary:hover .case__hint { color: var(--mid); }
 .toast.is-on { transform: translate(-50%, 0); opacity: 1; }
 
 /* ---------- Cursor ---------- */
+/* A dot marks exactly where the pointer is. A faint neon ring trails it with
+   two glowing orbs circling on opposite sides, and over anything clickable,
+   or anything focused from the keyboard, the same ring and orbs wrap that
+   element's outline. script.js sizes the ring and moves the orbs. */
 .cursor { display: none; }
 .has-cursor, .has-cursor * { cursor: none !important; }
+/* The video player keeps the system pointer for its own controls. */
+.has-cursor .lightbox video { cursor: auto !important; }
 .has-cursor .cursor {
   display: block; position: fixed; left: 0; top: 0; z-index: 100;
   pointer-events: none; opacity: 0;
 }
-.has-cursor.cursor-on .cursor--dot, .has-cursor.cursor-on .cursor--ring { opacity: 1; }
+.has-cursor.cursor-on .cursor--dot, .has-cursor.cursor-ring-on .cursor--ring { opacity: 1; }
+.has-cursor.cursor-native .cursor { opacity: 0; }
 .cursor--dot {
   width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
   background: #fff; mix-blend-mode: difference;
   transition: opacity .3s;
 }
 .cursor--ring {
-  width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .5);
-  mix-blend-mode: difference;
-  transition: opacity .3s, width .45s var(--ease), height .45s var(--ease), margin .45s var(--ease), background-color .3s, border-color .3s;
+  width: 0; height: 0;
+  filter: drop-shadow(0 0 3px rgba(64, 235, 255, .55));
+  transition: opacity .3s;
 }
-/* Over anything clickable the ring fills and inverts what is under it. */
-.cursor-hover .cursor--ring { width: 68px; height: 68px; margin: -34px 0 0 -34px; background: #fff; border-color: #fff; }
-.has-cursor.cursor-hover .cursor--dot { opacity: 0; }
-.cursor-down .cursor--ring { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
-.cursor-hover.cursor-down .cursor--ring { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+.cursor__svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; fill: none; }
+.cursor__edge { stroke: url(#cursorEdge); stroke-width: 1; opacity: .45; transition: opacity .3s; }
+.cursor-locked .cursor__edge { opacity: .9; }
+/* Two small glowing orbs ride the outline half a lap apart. Each is one
+   radial blend, a white core through cyan and violet out to a faint pink
+   halo, so there is no hard edge or color band. */
+.cursor__orb { fill: url(#cursorOrb); }
+/* The ring stands in for the focus outline of the element it wraps. */
+.has-cursor.cursor-ring-on .is-cursor-target:focus-visible { outline-color: transparent; }
 .cursor--label { margin: 30px 0 0 30px; font-size: 12px; color: var(--fg); white-space: nowrap; transition: opacity .25s; }
 .has-cursor.cursor-on.cursor-labelled .cursor--label { opacity: 1; }
 
@@ -416,6 +508,9 @@ summary:hover .case__hint { color: var(--mid); }
   .project__grid { grid-template-columns: 1fr; row-gap: 28px; }
   /* Phones: a sideways-scrolling strip, all the same height. */
   .shots { max-width: none; overflow-x: auto; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  /* The strip scrolls, so it would clip the halo. 20px of padding gives the
+     halo room and the matching negative margin keeps every shot in place. */
+  .shots { padding: 20px; margin: calc(clamp(28px, 5vh, 48px) - 20px) -20px -20px; scroll-padding-inline: 20px; }
   .shots::-webkit-scrollbar { display: none; }
   .shot { flex: 0 0 auto; height: 300px; width: calc(300px * var(--ar)); scroll-snap-align: start; }
   .shot img { width: 100%; height: 100%; }
@@ -434,4 +529,7 @@ summary:hover .case__hint { color: var(--mid); }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+  /* The glows stay parked on the lit outline instead of circling. */
+  .home__actions a .home__ring::after { animation: none !important; --home-spark: 300deg; }
+  .home__ring, .home__ring::before { animation: none !important; }
 }
