@@ -472,6 +472,7 @@ summary:hover .case__hint { color: var(--mid); }
 }
 .has-cursor.cursor-on .cursor--dot, .has-cursor.cursor-ring-on .cursor--ring { opacity: 1; }
 .has-cursor.cursor-native .cursor { opacity: 0; }
+.has-cursor.cursor-locked .cursor--dot { opacity: 0; }
 .cursor--dot {
   width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
   background: #fff; mix-blend-mode: difference;
