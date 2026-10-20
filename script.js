@@ -223,6 +223,11 @@
 
     let W = 0, H = 0, dpr = 1, N = 0;
     let home, off, vel, live, liveCount = 0, hits;
+    // The specks in motion, packed into the front of `moving` (live[i] marks
+    // them), so the spring never has to walk the resting ones. Resting specks
+    // sit at home, so a grid of home spots finds the ones the pointer reaches.
+    const CELL = 16, SWEEP = 0.4;
+    let moving, listed = true, cols = 0, rows = 0, cellStart, cellItems;
     let clock = 12;   // the shader's uTime as of the last frame
 
     // One paw drawing feeds two things: a per-speck brightness mask (the easter
@@ -306,7 +311,8 @@
       off = new Float32Array(N * 2);
       vel = new Float32Array(N * 2);
       live = new Uint8Array(N);
-      liveCount = 0;
+      moving = new Int32Array(N);
+      liveCount = 0; listed = true;
       const seed = new Float32Array(N * 4), far = Math.max(W, H);
       for (let i = 0; i < N; i++) {
         home[i * 2] = Math.random() * W;
@@ -316,6 +322,19 @@
         seed[i * 4 + 2] = Math.random() * Math.PI * 2;
         seed[i * 4 + 3] = (0.08 + Math.random() * 0.55) * far;
       }
+      cols = Math.ceil(W / CELL); rows = Math.ceil(H / CELL);
+      cellStart = new Int32Array(cols * rows + 1);
+      cellItems = new Int32Array(N);
+      const cellOf = new Int32Array(N);
+      for (let i = 0; i < N; i++) {
+        let cx = home[i * 2] / CELL | 0, cy = home[i * 2 + 1] / CELL | 0;
+        if (cx >= cols) cx = cols - 1;   // float rounding can land a speck on the far edge
+        if (cy >= rows) cy = rows - 1;
+        cellStart[(cellOf[i] = cy * cols + cx) + 1]++;
+      }
+      for (let c = 0; c < cols * rows; c++) cellStart[c + 1] += cellStart[c];
+      const fill = cellStart.slice(0, -1);
+      for (let i = 0; i < N; i++) cellItems[fill[cellOf[i]]++] = i;
       upload(A.home, home, gl.STATIC_DRAW);
       upload(A.seed, seed, gl.STATIC_DRAW);
       const paw = pawData();
@@ -338,8 +357,64 @@
       const speed = Math.min(Math.hypot(ptr.vx, ptr.vy) / 16, 1.8);
       const mx = ptr.x, my = ptr.y, mvx = ptr.vx, mvy = ptr.vy;
       const damp = Math.pow(0.9, dt), spring = 0.0016 * dt;
+      // Once a good share of specks is moving, one pass over all of them in
+      // memory order is cheaper than hopping around the list. That pass only
+      // keeps live[] current; the list is rebuilt from it when next needed.
+      if (liveCount > N * SWEEP) {
+        let count = 0;
+        for (let i = 0, j = 0; i < N; i++, j += 2) {
+          let ox = off[j], oy = off[j + 1], vx = vel[j], vy = vel[j + 1], hit = false;
+          if (pushing) {
+            const dx = home[j] + ox - mx, dy = home[j + 1] + oy - my, d2 = dx * dx + dy * dy;
+            if (d2 < R2) {
+              const d = Math.sqrt(d2) + 0.001, f = 1 - d / R, push = f * f * (0.18 + speed * 1.3) * dt;
+              vx += dx / d * push + mvx * f * 0.03 * dt;
+              vy += dy / d * push + mvy * f * 0.03 * dt;
+              hit = true;
+            }
+          }
+          if (!hit && !live[i]) continue;
+          vx = (vx - ox * spring) * damp;
+          vy = (vy - oy * spring) * damp;
+          ox += vx * dt; oy += vy * dt;
+          if (!hit && ox * ox + oy * oy < 0.04 && vx * vx + vy * vy < 0.0004) {
+            ox = oy = vx = vy = 0; live[i] = 0;
+          } else { live[i] = 1; count++; }
+          off[j] = ox; off[j + 1] = oy; vel[j] = vx; vel[j + 1] = vy;
+        }
+        liveCount = count; listed = false;
+        return true;
+      }
+      if (!listed) {
+        let count = 0;
+        for (let i = 0; i < N; i++) if (live[i]) moving[count++] = i;
+        listed = true;
+      }
+      if (pushing) {
+        // Resting specks within reach join the moving list. Cells wholly out
+        // of reach, with a pixel to spare, are never opened.
+        const reach2 = (R + 1) * (R + 1);
+        const x0 = Math.max(0, Math.floor((mx - R) / CELL) - 1), x1 = Math.min(cols - 1, Math.floor((mx + R) / CELL) + 1);
+        const y0 = Math.max(0, Math.floor((my - R) / CELL) - 1), y1 = Math.min(rows - 1, Math.floor((my + R) / CELL) + 1);
+        for (let cy = y0; cy <= y1; cy++) {
+          const ey = Math.max(cy * CELL - my, 0, my - (cy + 1) * CELL);
+          for (let cx = x0; cx <= x1; cx++) {
+            const ex = Math.max(cx * CELL - mx, 0, mx - (cx + 1) * CELL);
+            if (ex * ex + ey * ey > reach2) continue;
+            const c = cy * cols + cx;
+            for (let k = cellStart[c], end = cellStart[c + 1]; k < end; k++) {
+              const i = cellItems[k];
+              if (live[i]) continue;
+              const j = i * 2, dx = home[j] + off[j] - mx, dy = home[j + 1] + off[j + 1] - my;
+              if (dx * dx + dy * dy < R2) { live[i] = 1; moving[liveCount++] = i; }
+            }
+          }
+        }
+      }
+      // Walk the moving specks, keeping the list in order as settled ones drop out.
       let count = 0;
-      for (let i = 0, j = 0; i < N; i++, j += 2) {
+      for (let k = 0; k < liveCount; k++) {
+        const i = moving[k], j = i * 2;
         let ox = off[j], oy = off[j + 1], vx = vel[j], vy = vel[j + 1], hit = false;
         if (pushing) {
           const dx = home[j] + ox - mx, dy = home[j + 1] + oy - my, d2 = dx * dx + dy * dy;
@@ -350,13 +425,12 @@
             hit = true;
           }
         }
-        if (!hit && !live[i]) continue;
         vx = (vx - ox * spring) * damp;
         vy = (vy - oy * spring) * damp;
         ox += vx * dt; oy += vy * dt;
         if (!hit && ox * ox + oy * oy < 0.04 && vx * vx + vy * vy < 0.0004) {
           ox = oy = vx = vy = 0; live[i] = 0;
-        } else { live[i] = 1; count++; }
+        } else moving[count++] = i;
         off[j] = ox; off[j + 1] = oy; vel[j] = vx; vel[j + 1] = vy;
       }
       liveCount = count;
@@ -390,7 +464,7 @@
       shape[SEG] = shape[0]; shape[SEG + 1] = shape[1];
       const reach2 = reach * reach, perTurn = SEG / (Math.PI * 2);
       const hue = Math.random(), turn = Math.random() * Math.PI * 2;
-      let woke = 0, lo = N, hi = -1;
+      let lo = N, hi = -1;
       for (let i = 0, j = 0; i < N; i++, j += 2) {
         const dx = home[j] + off[j] - x, dy = home[j + 1] + off[j + 1] - y, d2 = dx * dx + dy * dy;
         if (d2 >= reach2) continue;
@@ -400,7 +474,7 @@
         if (d >= edge) continue;
         const v = (edge - d) / COAST * (0.85 + Math.random() * 0.3);
         vel[j] += dx / d * v; vel[j + 1] += dy / d * v;
-        if (!live[i]) { live[i] = 1; woke++; }
+        if (!live[i]) { live[i] = 1; moving[liveCount++] = i; }
         const b = i * 3, f = d / edge;
         hits[b] = clock;
         hits[b + 1] = 1 - 0.3 * f;
@@ -408,7 +482,6 @@
         if (i < lo) lo = i;
         hi = i;
       }
-      liveCount += woke;
       if (hi >= lo) {
         gl.bindBuffer(gl.ARRAY_BUFFER, A.burst.buf);
         gl.bufferSubData(gl.ARRAY_BUFFER, lo * 12, hits.subarray(lo * 3, hi * 3 + 3));
@@ -475,7 +548,9 @@
         pawTarget = 1;
         if (!reduced) {
           for (let j = 0; j < N * 2; j++) vel[j] += (Math.random() - 0.5) * 5;
-          live.fill(1); liveCount = N;
+          live.fill(1);
+          for (let i = 0; i < N; i++) moving[i] = i;
+          liveCount = N; listed = true;
         }
         clearTimeout(this._t);
         this._t = setTimeout(() => { pawTarget = 0; }, 3600);
