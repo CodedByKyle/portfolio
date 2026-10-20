@@ -979,8 +979,8 @@
     function hoverFrom(el) {
       const target = el && el.closest(TARGETS);
       over = frameable(target) ? target : null;
-      // Over the video, its own controls and the system pointer take over.
-      root.classList.toggle('cursor-native', !!el && el === lbVid);
+      // Over a video player, its own controls and the system pointer take over.
+      root.classList.toggle('cursor-native', !!el && el.matches('video[controls]'));
       const text = target && target.dataset.cursor;
       root.classList.toggle('cursor-labelled', !!text);
       if (text && label.textContent !== text) label.textContent = text;
@@ -1239,6 +1239,25 @@
       if (calm.matches) boxVid.pause();
       syncClips();
     });
+  }
+
+  /* ---------- Product demo: starts by itself once, muted ---------- */
+  // The first time the demo comes into view it starts playing. After that it
+  // is the visitor's: a pause sticks, and scrolling away and back does not restart
+  // it. With motion turned down it waits for the play button.
+  const demo = $('.demo video');
+  if (demo && !calm.matches) {
+    const demoIO = new IntersectionObserver(entries => {
+      if (calm.matches || document.hidden || !entries.some(e => e.isIntersecting && e.intersectionRatio >= 0.25)) return;
+      demoIO.disconnect();
+      if (!demo.paused) return;
+      demo.muted = true;
+      const started = demo.play();
+      // Refused (autoplay blocked, low power mode): the poster and controls stay.
+      if (started) started.catch(() => {});
+    }, { threshold: 0.25 });
+    demo.addEventListener('play', () => demoIO.disconnect(), { once: true });
+    demoIO.observe(demo);
   }
 
   /* ---------- Copy email ---------- */

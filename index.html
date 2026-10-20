@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&family=Space+Grotesk:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=33">
+  <link rel="stylesheet" href="styles.css?v=34">
   <script>
     // The .js class lets CSS hide things that script.js will animate in. If that
     // script is blocked, fails or never starts, drop the class so nothing stays hidden.
@@ -105,6 +105,12 @@
               <p>It reads spec sheets locally, checks spelling, dimensions, fonts, finishes, materials, header fields, product data and factory information, and sorts every file into a review report before anything goes to manufacturing.</p>
             </div>
           </div>
+          <figure class="demo">
+            <video controls muted playsinline preload="none" poster="images/speccheck-demo.jpg" width="1920" height="1080" aria-label="SpecCheck product demo, 1 minute 13 seconds, no audio" aria-describedby="speccheckDemoCaption">
+              <source src="images/speccheck-demo.mp4" type="video/mp4">
+            </video>
+            <figcaption id="speccheckDemoCaption"><span class="demo__meta">Product demo · 1:13</span> Choose a folder of sample spec sheets, run the check, then open the report to see each file's findings and what was checked. Sample files are synthetic. No audio; captions are on screen.</figcaption>
+          </figure>
           <div class="shots" style="--sum:5.53">
             <button class="shot" style="--ar:1.133" data-cursor="View">
               <img src="images/speccheck-1.png" alt="SpecCheck start screen, asking for a Box link or a folder of spec sheets to check" width="1296" height="1144" loading="lazy" decoding="async">
@@ -435,6 +441,6 @@
   <div class="cursor cursor--dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor cursor--label" id="cursorLabel" aria-hidden="true"></div>
 
-  <script src="script.js?v=35"></script>
+  <script src="script.js?v=37"></script>
 </body>
 </html>

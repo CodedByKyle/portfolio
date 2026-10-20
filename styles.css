@@ -280,6 +280,18 @@ main, .footer { position: relative; z-index: 1; }
 }
 .shot.is-playing video { opacity: 1; }
 
+/* Product demo. A full-width 16:9 player with its own native controls. */
+.demo { margin: clamp(28px, 5vh, 48px) 0 0; }
+.demo video {
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: #111;
+  transition: filter .7s;
+}
+.js .project:not(.is-focus):not(:hover) .demo video { filter: grayscale(1); }
+.demo figcaption { margin-top: 14px; max-width: 70ch; font-size: 13px; color: var(--mid); }
+.demo__meta { color: var(--mid); margin-right: .5em; }
+
 /* Full-size view. Shown at true size and scrolls if the screenshot is tall. */
 .lightbox {
   position: fixed; inset: 0; z-index: 80;
@@ -477,8 +489,8 @@ summary:hover .case__hint { color: var(--mid); }
    element's outline. script.js sizes the ring and moves the orbs. */
 .cursor { display: none; }
 .has-cursor, .has-cursor * { cursor: none !important; }
-/* The video player keeps the system pointer for its own controls. */
-.has-cursor .lightbox video { cursor: auto !important; }
+/* Video players keep the system pointer for their own controls. */
+.has-cursor video[controls] { cursor: auto !important; }
 .has-cursor .cursor {
   display: block; position: fixed; left: 0; top: 0; z-index: 100;
   pointer-events: none; opacity: 0;
