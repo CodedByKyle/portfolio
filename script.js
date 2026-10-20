@@ -101,6 +101,10 @@
       // How near this speck sits to the crest of the ridge in front, and the
       // neon hue there. Like d, only the nearest ridge over the speck counts.
       float crest = 0.0, hue = 0.0;
+      // Depth for the dunes alone (the intro reads d, so these stay apart):
+      // extra density for the ridge over the speck, how far down that ridge it
+      // sits, which ridge it is, and how far up from the next crest in front.
+      float body = 0.0, own = 0.0, gap = 1.0, layer = 1.0;
 
       // Ridges, far to near. Each has a hard bright crest and a soft slope
       // that falls into shadow before the next crest starts.
@@ -125,13 +129,25 @@
           float light = 0.1 + 0.9 * smoothstep(0.25, 0.75, noise(x * 0.8 + kk * 5.1 - drift * 1.4 + uScroll * 0.5));
           float slope = 0.42 * exp(-below / 0.012) + 0.58 * exp(-below / mix(0.06, 0.15, fk));
           // Faint ripples running down the slope, like wind marks in sand.
-          float ripple = 0.8 + 0.2 * sin(below * 210.0 + noise(x * 2.3 + float(k) * 3.0) * 6.0 - uTime * 0.12);
+          float wind = sin(below * 210.0 + noise(x * 2.3 + float(k) * 3.0) * 6.0 - uTime * 0.12);
+          float ripple = 0.8 + 0.2 * wind;
           d = mix(0.55, 1.0, fk) * light * slope * mix(1.0, ripple, smoothstep(0.0, 0.03, below));
+          // The ridge in front gains a body further down its slope, so the land
+          // nearest has mass, falling away softly toward the bottom. The ridges
+          // behind get a finer, firmer crest line instead, so they read as
+          // layers rather than haze.
+          float band = 0.5 + 0.5 * wind;
+          body = 0.24 * fk * fk * fk * mix(0.45, 1.0, light) * exp(-below / mix(0.14, 0.32, fk))
+               * mix(0.3, 1.0, band * band) * smoothstep(0.0, 0.05, below)
+               + 0.45 * (1.0 - fk) * light * exp(-below / 0.008);
+          own = below;
+          layer = fk;
+          gap = 1.0;
           // Bright stretches of crest carry neon, in patches that drift along the ridge.
           float pulse = smoothstep(0.3, 0.75, noise(along * 1.1 - uTime * 0.18 + kk * 4.0));
           crest = exp(-below / 0.014) * smoothstep(0.2, 0.7, light) * mix(0.35, 1.0, pulse);
           hue = along * 0.22 + kk * 0.31 - uTime * 0.05;
-        }
+        } else gap = min(gap, -below);
       }
 
       // Keep the corner behind the name and proposition clear on the home screen.
@@ -139,12 +155,21 @@
       float corner = smoothstep(0.6, 1.1, length(q));
       float keep = mix(corner, 1.0, clamp(uScroll * 2.0, 0.0, 1.0)) * (1.0 - smoothstep(0.78, 1.0, uv.y) * 0.85);
       d *= keep;
+      // The dunes once the intro has let go: far slopes recede a little behind
+      // their crests, the extra density above comes in, and the trough just
+      // behind a nearer crest falls into shadow so the layers separate. Only
+      // the slope below a ridge's own crest is shaded, never the crest itself.
+      float trough = 1.0 - 0.55 * (1.0 - smoothstep(0.0, 0.08, gap)) * smoothstep(0.02, 0.08, own);
+      float dDune = (d * mix(mix(0.75, 1.0, layer), 1.0, crest) + body * keep) * trough;
 
       d = mix(d, aPaw, uPaw);
+      dDune = mix(dDune, aPaw, uPaw);
 
+      float twinkle = 0.82 + 0.18 * sin(uTime * (0.5 + aSeed.y * 1.6) + aSeed.y * 50.0), dimmer = mix(0.6, 1.0, fract(aSeed.y * 7.31));
       float a = smoothstep(aSeed.x, aSeed.x + 0.08, d);
-      a *= 0.82 + 0.18 * sin(uTime * (0.5 + aSeed.y * 1.6) + aSeed.y * 50.0);
-      a *= mix(0.6, 1.0, fract(aSeed.y * 7.31));
+      a *= twinkle;
+      a *= dimmer;
+      float aDune = smoothstep(aSeed.x, aSeed.x + 0.08, dDune) * twinkle * dimmer;
 
       // Intro, part one: two spheres of dots, one inside the other, both there
       // from the first frame. The inner orb breathes, turning on a tilted axis
@@ -266,7 +291,7 @@
       // own place, leaving the intro's lighting behind as it goes.
       float s = clamp(uSpread * 1.5 - fract(aSeed.y * 13.7) * 0.5, 0.0, 1.0);
       s = s * s * (3.0 - 2.0 * s);
-      a = mix(mix(orbA, a, s), mix(max(a, fill) * shade * thin, a, s), g);
+      a = mix(mix(orbA, aDune, s), mix(max(a, fill) * shade * thin, aDune, s), g);
       vec2 way = aHome - from;
       vec2 swing = vec2(-way.y, way.x) * sin(3.14159 * s) * mix(0.08, 0.26, fract(aSeed.x * 37.0));
       // While the paw is held, its outline breathes. Neighbouring specks ride
