@@ -32,7 +32,7 @@
     attribute vec3 aBurst;  // the last click that threw this speck: when (on the uTime clock), how hard, and its hue
     uniform vec2 uRes;
     uniform float uDpr, uTime, uGather, uSpread, uPawGain, uScroll, uPan, uDim, uPaw;
-    varying float vAlpha, vGlow, vCore;
+    varying float vAlpha, vGlow, vCore, vAmb;
     varying vec3 vColor;
 
     float hash(float n) { return fract(sin(n) * 43758.5453123); }
@@ -103,7 +103,7 @@
           d = mix(0.55, 1.0, fk) * light * slope * mix(1.0, ripple, smoothstep(0.0, 0.03, below));
           // Bright stretches of crest carry neon, in patches that drift along the ridge.
           float pulse = smoothstep(0.3, 0.75, noise(along * 1.1 - uTime * 0.18 + kk * 4.0));
-          crest = exp(-below / 0.01) * smoothstep(0.3, 0.8, light) * mix(0.2, 1.0, pulse);
+          crest = exp(-below / 0.014) * smoothstep(0.2, 0.7, light) * mix(0.35, 1.0, pulse);
           hue = along * 0.22 + kk * 0.31 - uTime * 0.05;
         }
       }
@@ -153,35 +153,44 @@
       // easter egg. A click tints the specks it threw, lighting a share of the
       // dark ones too so it shows in the sky, then fades back to the idle look.
       float fade = (1.0 - uPaw) * s;
-      float tint = crest * keep * fade;
+      float tint = clamp(crest * 1.5, 0.0, 1.0) * keep * fade;
       float age = uTime - aBurst.x;
       float hit = aBurst.y * (1.0 - smoothstep(0.0, 2.6, age)) * fade;
       a = max(a, hit * (1.0 - smoothstep(0.08, 0.2, aSeed.x)) * mix(0.4, 1.0, keep));
-      vec3 col = mix(vec3(0.93), neon(hue), tint);
+      // The crest neon runs deeper than the click colours: the hue slides a
+      // little down the slope and the palette is pushed away from grey.
+      vec3 rich = neon(hue + 0.2 * (1.0 - crest));
+      rich = clamp(mix(vec3(dot(rich, vec3(0.3, 0.5, 0.2))), rich, 1.3), 0.0, 1.0);
+      vec3 col = mix(vec3(0.93), rich, tint);
       col = mix(col, neon(aBurst.z + age * 0.08), hit);
       float glow = max(tint, hit) * step(0.02, a);
+      // How much of the glow is the idle crest rather than a click.
+      float amb = tint / (tint + hit + 0.0001);
 
-      vAlpha = a * g * mix(uPawGain, 1.0, s) * uDim;
+      // Scrolling dims the land; the crest neon dims less, so it still reads.
+      vAlpha = a * g * mix(uPawGain, 1.0, s) * mix(uDim, sqrt(uDim), tint * amb);
       vColor = col;
       vec2 clip = p / uRes * 2.0 - 1.0;
       gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
       // A glowing speck draws a larger point: its own speck in the middle, a halo round it.
       float size = max(1.0, uDpr * mix(0.7, 1.3, fract(aSeed.x * 91.7)));
-      float grow = uDpr * 3.0 * glow;
+      float grow = uDpr * mix(3.0, 3.6, amb) * glow;
       gl_PointSize = size + grow;
       vCore = size / (size + grow);
       vGlow = glow;
+      vAmb = amb;
     }`;
 
   const FRAG = `
     precision mediump float;
-    varying float vAlpha, vGlow, vCore;
+    varying float vAlpha, vGlow, vCore, vAmb;
     varying vec3 vColor;
     void main() {
       if (vGlow <= 0.0) { gl_FragColor = vec4(vColor, vAlpha); return; }
       float r = length(gl_PointCoord - 0.5) * 2.0;
-      if (r < vCore) gl_FragColor = vec4(mix(vColor, vec3(1.0), 0.25 * vGlow), vAlpha);
-      else gl_FragColor = vec4(vColor, vAlpha * vGlow * 0.55 * pow(max(1.0 - r, 0.0), 1.5));
+      // Crest specks keep more colour in the core and throw a brighter, fuller halo than click specks.
+      if (r < vCore) gl_FragColor = vec4(mix(vColor, vec3(1.0), mix(0.25, 0.12, vAmb) * vGlow), vAlpha);
+      else gl_FragColor = vec4(vColor, vAlpha * vGlow * mix(0.55, 0.9, vAmb) * pow(max(1.0 - r, 0.0), mix(1.5, 1.2, vAmb)));
     }`;
 
   function createGrain() {
