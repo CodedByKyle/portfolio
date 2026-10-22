@@ -170,17 +170,23 @@
           </details>
         </article>
 
-        <article class="project" id="health-report" data-reveal>
-          <h3>Digital Health Report</h3>
+        <article class="project" id="sidetone" data-reveal>
+          <h3>Sidetone</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>A morning Slack report of the shelter animals that need medical attention: illnesses, observations and stool samples due, and handling notes.</p>
-              <p>It replaced a hand-compiled list that was sometimes missed when staffing or time ran short.</p>
+              <p>A personal automation experiment: a lightweight Spotify controller for macOS.</p>
+              <p>Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
             </div>
           </div>
-          <div class="shots" style="--sum:0.76">
-            <button class="shot" style="--ar:0.755" data-cursor="View">
-              <img src="images/health-report-1.jpg" alt="The morning health report as it arrives in Slack, listing observations due and stool issues, shown with sample data" width="974" height="1290" loading="lazy" decoding="async">
+          <div class="shots" style="--sum:2.75">
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-1.jpg" alt="Sidetone playback panel at the left edge of the screen" width="1102" height="1200" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-2.jpg" alt="Sidetone showing six pinned playlists" width="1102" height="1200" loading="lazy" decoding="async">
+            </button>
+            <button class="shot" style="--ar:0.918" data-cursor="View">
+              <img src="images/sidetone-3.jpg" alt="Sidetone searching the Spotify library" width="1102" height="1200" loading="lazy" decoding="async">
             </button>
           </div>
 
@@ -194,27 +200,28 @@
               <section class="case__part">
                 <h4>Problem</h4>
                 <div>
-                  <p>The medical team kept a hand-written list of animals that needed attention. It was compiled daily, printed and posted around the building, when time allowed. With limited staff and time, it was sometimes missed.</p>
+                  <p>Skipping a song or starting a playlist meant switching to the Spotify app, finding it, and switching back. Each switch is small, but it pulls attention away from the work in front of you.</p>
+                  <p>Sidetone is a personal experiment in keeping those controls one gesture away.</p>
                 </div>
               </section>
 
               <section class="case__part">
                 <h4>Workflow</h4>
                 <div>
-                  <ol class="flow" aria-label="Digital Health Report workflow">
-                    <li><span class="flow__kind">Data</span><span class="flow__nodes"><span class="node">Internal medical database</span><span class="node">Shelterluv scheduled report emails</span></span></li>
-                    <li><span class="flow__kind">Processing</span><span class="flow__nodes"><span class="node">Google Apps Script reads both sources and combines them into one report</span></span></li>
-                    <li><span class="flow__kind">Delivery</span><span class="flow__nodes"><span class="node">Formatted message posted to Slack each morning</span></span></li>
-                    <li><span class="flow__kind">People</span><span class="flow__nodes"><span class="node node--person">Relevant staff read it in Slack</span></span></li>
+                  <ol class="flow" aria-label="Sidetone workflow">
+                    <li><span class="flow__kind">Open</span><span class="flow__nodes"><span class="node">Cursor to the screen edge</span><span class="node">Hotkey</span></span></li>
+                    <li><span class="flow__kind">Panel</span><span class="flow__nodes"><span class="node">Now playing, progress, playback controls and volume</span></span></li>
+                    <li><span class="flow__kind">Choose</span><span class="flow__nodes"><span class="node">Pinned favorites</span><span class="node">Search: songs, artists, albums, playlists</span></span></li>
+                    <li><span class="flow__kind">Return</span><span class="flow__nodes"><span class="node node--person">Back to the app I was working in</span></span></li>
                   </ol>
-                  <p class="case__source">The report lists illnesses and medical notes, observations due, stool samples due, and handling notes. The screenshot is a test run with sample data, not real animals.</p>
+                  <p class="case__source">This is the path through the app as a user sees it. It does not describe how work is split between AppleScript and the Spotify Web API.</p>
                 </div>
               </section>
 
               <section class="case__part">
                 <h4>Stack</h4>
                 <div>
-                  <p>Google Apps Script, Slack, Shelterluv report emails, Drive API</p>
+                  <p>Swift, SwiftUI, AppKit, AppleScript, Spotify Web API</p>
                 </div>
               </section>
 
@@ -281,23 +288,17 @@
           </details>
         </article>
 
-        <article class="project" id="sidetone" data-reveal>
-          <h3>Sidetone</h3>
+        <article class="project" id="health-report" data-reveal>
+          <h3>Digital Health Report</h3>
           <div class="project__grid">
             <div class="project__text">
-              <p>A personal automation experiment: a lightweight Spotify controller for macOS.</p>
-              <p>Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
+              <p>A morning Slack report of the shelter animals that need medical attention: illnesses, observations and stool samples due, and handling notes.</p>
+              <p>It replaced a hand-compiled list that was sometimes missed when staffing or time ran short.</p>
             </div>
           </div>
-          <div class="shots" style="--sum:2.75">
-            <button class="shot" style="--ar:0.918" data-cursor="View">
-              <img src="images/sidetone-1.jpg" alt="Sidetone playback panel at the left edge of the screen" width="1102" height="1200" loading="lazy" decoding="async">
-            </button>
-            <button class="shot" style="--ar:0.918" data-cursor="View">
-              <img src="images/sidetone-2.jpg" alt="Sidetone showing six pinned playlists" width="1102" height="1200" loading="lazy" decoding="async">
-            </button>
-            <button class="shot" style="--ar:0.918" data-cursor="View">
-              <img src="images/sidetone-3.jpg" alt="Sidetone searching the Spotify library" width="1102" height="1200" loading="lazy" decoding="async">
+          <div class="shots" style="--sum:0.76">
+            <button class="shot" style="--ar:0.755" data-cursor="View">
+              <img src="images/health-report-1.jpg" alt="The morning health report as it arrives in Slack, listing observations due and stool issues, shown with sample data" width="974" height="1290" loading="lazy" decoding="async">
             </button>
           </div>
 
@@ -311,28 +312,27 @@
               <section class="case__part">
                 <h4>Problem</h4>
                 <div>
-                  <p>Skipping a song or starting a playlist meant switching to the Spotify app, finding it, and switching back. Each switch is small, but it pulls attention away from the work in front of you.</p>
-                  <p>Sidetone is a personal experiment in keeping those controls one gesture away.</p>
+                  <p>The medical team kept a hand-written list of animals that needed attention. It was compiled daily, printed and posted around the building, when time allowed. With limited staff and time, it was sometimes missed.</p>
                 </div>
               </section>
 
               <section class="case__part">
                 <h4>Workflow</h4>
                 <div>
-                  <ol class="flow" aria-label="Sidetone workflow">
-                    <li><span class="flow__kind">Open</span><span class="flow__nodes"><span class="node">Cursor to the screen edge</span><span class="node">Hotkey</span></span></li>
-                    <li><span class="flow__kind">Panel</span><span class="flow__nodes"><span class="node">Now playing, progress, playback controls and volume</span></span></li>
-                    <li><span class="flow__kind">Choose</span><span class="flow__nodes"><span class="node">Pinned favorites</span><span class="node">Search: songs, artists, albums, playlists</span></span></li>
-                    <li><span class="flow__kind">Return</span><span class="flow__nodes"><span class="node node--person">Back to the app I was working in</span></span></li>
+                  <ol class="flow" aria-label="Digital Health Report workflow">
+                    <li><span class="flow__kind">Data</span><span class="flow__nodes"><span class="node">Internal medical database</span><span class="node">Shelterluv scheduled report emails</span></span></li>
+                    <li><span class="flow__kind">Processing</span><span class="flow__nodes"><span class="node">Google Apps Script reads both sources and combines them into one report</span></span></li>
+                    <li><span class="flow__kind">Delivery</span><span class="flow__nodes"><span class="node">Formatted message posted to Slack each morning</span></span></li>
+                    <li><span class="flow__kind">People</span><span class="flow__nodes"><span class="node node--person">Relevant staff read it in Slack</span></span></li>
                   </ol>
-                  <p class="case__source">This is the path through the app as a user sees it. It does not describe how work is split between AppleScript and the Spotify Web API.</p>
+                  <p class="case__source">The report lists illnesses and medical notes, observations due, stool samples due, and handling notes. The screenshot is a test run with sample data, not real animals.</p>
                 </div>
               </section>
 
               <section class="case__part">
                 <h4>Stack</h4>
                 <div>
-                  <p>Swift, SwiftUI, AppKit, AppleScript, Spotify Web API</p>
+                  <p>Google Apps Script, Slack, Shelterluv report emails, Drive API</p>
                 </div>
               </section>
 
