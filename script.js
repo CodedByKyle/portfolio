@@ -1241,12 +1241,11 @@
     });
   }
 
-  /* ---------- Product demo: starts by itself once, muted ---------- */
-  // The first time the demo comes into view it starts playing. After that it
+  /* ---------- Product demos: each starts by itself once, muted ---------- */
+  // The first time a demo comes into view it starts playing. After that it
   // is the visitor's: a pause sticks, and scrolling away and back does not restart
   // it. With motion turned down it waits for the play button.
-  const demo = $('.demo video');
-  if (demo && !calm.matches) {
+  if (!calm.matches) $$('.demo video').forEach(demo => {
     const demoIO = new IntersectionObserver(entries => {
       if (calm.matches || document.hidden || !entries.some(e => e.isIntersecting && e.intersectionRatio >= 0.25)) return;
       demoIO.disconnect();
@@ -1258,7 +1257,7 @@
     }, { threshold: 0.25 });
     demo.addEventListener('play', () => demoIO.disconnect(), { once: true });
     demoIO.observe(demo);
-  }
+  });
 
   /* ---------- Copy email ---------- */
   const copyBtn = $('#copyEmail');

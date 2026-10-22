@@ -291,6 +291,9 @@ main, .footer { position: relative; z-index: 1; }
 .js .project:not(.is-focus):not(:hover) .demo video { filter: grayscale(1); }
 .demo figcaption { margin-top: 14px; max-width: 70ch; font-size: 13px; color: var(--mid); }
 .demo__meta { color: var(--mid); margin-right: .5em; }
+/* Portrait recording (Sidetone, 1000x1120): kept to a readable width and left
+   aligned; on narrow screens it fills the column. */
+.demo--portrait video { aspect-ratio: 1000 / 1120; max-width: 560px; }
 
 /* Full-size view. Shown at true size and scrolls if the screenshot is tall. */
 .lightbox {

@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400&family=Space+Grotesk:wght@400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=34">
+  <link rel="stylesheet" href="styles.css?v=35">
   <script>
     // The .js class lets CSS hide things that script.js will animate in. If that
     // script is blocked, fails or never starts, drop the class so nothing stays hidden.
@@ -178,6 +178,12 @@
               <p>Move the cursor to the screen edge or press a hotkey to control playback, search the library or open pinned favorites without leaving the app you are in.</p>
             </div>
           </div>
+          <figure class="demo demo--portrait">
+            <video controls muted playsinline preload="none" poster="images/sidetone-demo.jpg" width="1000" height="1120" aria-label="Sidetone product demo, 36 seconds, no audio" aria-describedby="sidetoneDemoCaption">
+              <source src="images/sidetone-demo.mp4" type="video/mp4">
+            </video>
+            <figcaption id="sidetoneDemoCaption"><span class="demo__meta">Product demo · 0:36</span> Open the pinned favorites, play a song from a playlist, search the library and filter to albums, then pin an album and unpin it from the right-click menu. No audio.</figcaption>
+          </figure>
           <div class="shots" style="--sum:2.75">
             <button class="shot" style="--ar:0.918" data-cursor="View">
               <img src="images/sidetone-1.jpg" alt="Sidetone playback panel at the left edge of the screen" width="1102" height="1200" loading="lazy" decoding="async">
@@ -441,6 +447,6 @@
   <div class="cursor cursor--dot" id="cursorDot" aria-hidden="true"></div>
   <div class="cursor cursor--label" id="cursorLabel" aria-hidden="true"></div>
 
-  <script src="script.js?v=37"></script>
+  <script src="script.js?v=38"></script>
 </body>
 </html>
